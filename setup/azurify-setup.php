@@ -196,6 +196,11 @@ try {
         'app/Http/Middleware/Api/Application/AuthenticateApplicationUser.php' => [
             ['if (!$user || !$user->root_admin) {', "if (!\$user || !{$gate}::allows(\$user, 'api')) {"],
         ],
+        'routes/api-client.php' => [
+            ["    Route::delete('/api-keys/{identifier}', [Client\ApiKeyController::class, 'delete']);",
+             "    Route::delete('/api-keys/{identifier}', [Client\ApiKeyController::class, 'delete']);\n" .
+             "    Route::post('/api-keys/{identifier}/reveal', Client\AzurifyApiKeyRevealController::class);"],
+        ],
         'resources/views/templates/wrapper.blade.php' => [
             ["                    window.PterodactylUser = {!! json_encode(Auth::user()->toVueObject()) !!};",
              "                    window.PterodactylUser = {!! json_encode(Auth::user()->toVueObject()) !!};
