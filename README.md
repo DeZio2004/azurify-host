@@ -27,6 +27,13 @@ What the installer sets up for you:
 
 Applies the latest branding, eggs, API keys and staff system. Safe to run again. Hard-refresh the browser after.
 
+## Uninstall
+
+    bash <(curl -Ls https://raw.githubusercontent.com/DeZio2004/azurify-host/main/uninstall.sh)
+
+Removes the panel, its database, the node and every server with its files (type DELETE to confirm).
+System packages stay so a reinstall is fast; add `--purge` at the end to remove nginx, MariaDB, PHP, Redis and Docker too.
+
 ## Firewall
 
 Open 80, your panel port, 8080 and 2022 (plus game ports) in any cloud firewall.
