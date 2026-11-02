@@ -78,6 +78,14 @@ export DEBIAN_FRONTEND=noninteractive
 
 # ---------------------------------------------------------------- packages
 say "Installing system packages (this takes a few minutes)"
+# Repair leftovers from an earlier removal (half-removed MariaDB/MySQL packages break a reinstall).
+dpkg --configure -a >/dev/null 2>&1 || true
+LEFTOVER=$(dpkg -l 2>/dev/null | awk '$1 ~ /^(rc|iF|iU|iH)$/ && $2 ~ /^(mariadb|mysql|galera)/ {print $2}' || true)
+if [ -n "$LEFTOVER" ]; then
+  echo "Cleaning up a previous MariaDB install: $(echo $LEFTOVER)"
+  echo "$LEFTOVER" | xargs -r dpkg --purge --force-all >/dev/null 2>&1 || true
+  apt-get -f install -y >/dev/null 2>&1 || true
+fi
 apt-get update -y
 apt-get install -y software-properties-common curl ca-certificates gnupg lsb-release tar unzip git cron openssl \
   nginx redis-server mariadb-server certbot ufw

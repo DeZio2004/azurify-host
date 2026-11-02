@@ -50,9 +50,11 @@ fi
 if [ "$PURGE" = 1 ]; then
   step "Removing system packages"
   export DEBIAN_FRONTEND=noninteractive
-  apt-get purge -y nginx nginx-common mariadb-server mariadb-client redis-server certbot \
-    'php8.3*' docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null 2>&1 || true
-  apt-get autoremove -y >/dev/null 2>&1 || true
+  apt-get purge -y nginx nginx-common mariadb-server mariadb-client mariadb-common mysql-common galera-4 \
+    redis-server redis-tools certbot 'php8.3*' docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null 2>&1 || true
+  apt-get autoremove --purge -y >/dev/null 2>&1 || true
+  # purge anything left in "removed, config kept" state so a reinstall starts clean
+  dpkg -l | awk '/^rc/ {print $2}' | grep -E 'mariadb|mysql|galera|nginx|redis|php|docker|containerd|certbot' | xargs -r dpkg --purge >/dev/null 2>&1 || true
   rm -rf /var/lib/mysql /etc/mysql /var/lib/docker /etc/letsencrypt /etc/nginx /usr/local/bin/composer
 fi
 
