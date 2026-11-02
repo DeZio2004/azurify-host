@@ -74,12 +74,28 @@ file_put_contents($f,$s);' $V_DIR/admin/nests/index.blade.php
 grep -rlE "Pterodactyl" resources/lang 2>/dev/null | xargs -r sed -i -E "s/Pterodactyl Panel/$BRAND_NAME Host/g; s/Pterodactyl/$BRAND_NAME/g" || true
 
 # ---- inject theme (replaces any older injection)
+FONTS='https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700\&family=Inter:wght@400;500;600;700\&family=JetBrains+Mono:wght@400;500\&display=swap'
 for L in $V_DIR/templates/wrapper.blade.php $V_DIR/layouts/admin.blade.php $V_DIR/templates/auth/core.blade.php; do
   [ -f "$L" ] || continue
-  sed -i -E 's#<link rel="stylesheet" href="/azurify/[^"]*">##g; s#<script defer src="/azurify/[^"]*"></script>##g' "$L"
+  sed -i -E 's#<link rel="stylesheet" href="/azurify/[^"]*">##g; s#<script defer src="/azurify/[^"]*"></script>##g; s#<link rel="stylesheet" href="https://fonts.googleapis.com/css2\?family=Sora[^"]*">##g' "$L"
 done
-sed -i "s#</head>#<link rel=\"stylesheet\" href=\"/azurify/azurify-glass.css?v=$V\"><script defer src=\"/azurify/azurify-glass.js?v=$V\"></script>\n</head>#" $V_DIR/templates/wrapper.blade.php
-sed -i "s#</head>#<link rel=\"stylesheet\" href=\"/azurify/azurify-admin.css?v=$V\">\n</head>#" $V_DIR/layouts/admin.blade.php
+
+# The new AZURIFY interface (compiled React app) ships in ui/dist; without it, fall back to the glass skin.
+UI_DIST="${AZURIFY_SRC:-}/ui/dist/assets"
+PANEL_VER=$(grep -oP "'version' => '\K[^']+" config/app.php || true)
+UI_VER=$(cat "${AZURIFY_SRC:-}/ui/dist/PANEL_VERSION" 2>/dev/null || true)
+if [ -n "${AZURIFY_SRC:-}" ] && [ -f "$UI_DIST/manifest.json" ] && [ "$PANEL_VER" != "$UI_VER" ]; then
+  echo "    NOTE: panel is $PANEL_VER but the AZURIFY interface is built for $UI_VER - keeping the glass skin instead."
+fi
+if [ -n "${AZURIFY_SRC:-}" ] && [ -f "$UI_DIST/manifest.json" ] && [ "$PANEL_VER" = "$UI_VER" ]; then
+  echo "    installing the AZURIFY interface"
+  find public/assets -maxdepth 1 -type f \( -name '*.js' -o -name '*.js.map' -o -name '*.LICENSE.txt' \) -delete
+  cp -r "$UI_DIST/." public/assets/
+  sed -i "s#</head>#<link rel=\"stylesheet\" href=\"$FONTS\">\n</head>#" $V_DIR/templates/wrapper.blade.php
+else
+  sed -i "s#</head>#<link rel=\"stylesheet\" href=\"/azurify/azurify-glass.css?v=$V\"><script defer src=\"/azurify/azurify-glass.js?v=$V\"></script>\n</head>#" $V_DIR/templates/wrapper.blade.php
+fi
+sed -i "s#</head>#<link rel=\"stylesheet\" href=\"$FONTS\"><link rel=\"stylesheet\" href=\"/azurify/azurify-admin.css?v=$V\">\n</head>#" $V_DIR/layouts/admin.blade.php
 sed -i 's/class="hold-transition skin-blue fixed sidebar-mini"/class="hold-transition skin-blue fixed sidebar-mini azurify"/' $V_DIR/layouts/admin.blade.php
 
 # ---- compiled client app (React bundle): display strings, links, mascot, terminal prompt

@@ -11,6 +11,7 @@ SRC=/opt/azurify-host          # installer files (eggs, theme, setup scripts)
 CRED_FILE=/root/azurify-credentials.txt
 PANEL_DIR=/var/www/azurify
 PHP_VER=8.3
+PANEL_VERSION=1.15.2      # the AZURIFY interface in ui/dist is built for this exact panel version
 
 c_b="\033[1;36m"; c_g="\033[1;32m"; c_r="\033[1;31m"; c_0="\033[0m"
 say()  { echo -e "${c_b}==>${c_0} $*"; }
@@ -122,7 +123,7 @@ PANEL_URL="$SCHEME://$DOMAIN$PORT_SUFFIX"
 # ---------------------------------------------------------------- panel files
 say "Downloading panel"
 mkdir -p "$PANEL_DIR" && cd "$PANEL_DIR"
-curl -fsSL https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz | tar -xzf -
+curl -fsSL https://github.com/pterodactyl/panel/releases/download/v$PANEL_VERSION/panel.tar.gz | tar -xzf -
 chmod -R 755 storage/* bootstrap/cache/
 cp -n .env.example .env
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction

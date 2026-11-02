@@ -196,6 +196,12 @@ try {
         'app/Http/Middleware/Api/Application/AuthenticateApplicationUser.php' => [
             ['if (!$user || !$user->root_admin) {', "if (!\$user || !{$gate}::allows(\$user, 'api')) {"],
         ],
+        'resources/views/templates/wrapper.blade.php' => [
+            ["                    window.PterodactylUser = {!! json_encode(Auth::user()->toVueObject()) !!};",
+             "                    window.PterodactylUser = {!! json_encode(Auth::user()->toVueObject()) !!};
+" .
+             "                    window.AzurifyAccess = {!! json_encode({$gate}::clientInfo(Auth::user())) !!};"],
+        ],
         'resources/views/layouts/admin.blade.php' => [
             ['                        <li class="header">SERVICE MANAGEMENT</li>',
              "                        @if({$gate}::isOwner(Auth::user()))\n" .

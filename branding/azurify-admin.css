@@ -185,3 +185,66 @@ body.azurify .main-footer {
 body.azurify ::-webkit-scrollbar { width: 10px; height: 10px; }
 body.azurify ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 8px; }
 body.azurify ::-webkit-scrollbar-track { background: transparent; }
+
+/* ===================== AZURIFY Host v2 design (matches the client app) ===================== */
+body.azurify {
+  --az-bg: #050812;
+  --az-glass: rgba(255, 255, 255, 0.04);
+  --az-glass-2: rgba(255, 255, 255, 0.07);
+  --az-line: rgba(148, 197, 255, 0.12);
+  font-family: "Inter", system-ui, sans-serif !important;
+  background: #050812 !important;
+}
+body.azurify h1, body.azurify h2, body.azurify h3, body.azurify .box-title { font-family: "Sora", "Inter", sans-serif !important; }
+body.azurify .main-sidebar, body.azurify .left-side,
+body.azurify .main-header .logo { background: #07101f !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+body.azurify .main-header .navbar { background: rgba(5, 8, 18, 0.85) !important; }
+body.azurify .main-header .logo span { background: none; -webkit-background-clip: initial; background-clip: initial; color: #e6edf7 !important; }
+body.azurify .sidebar-menu > li.active > a {
+  background: rgba(34, 211, 238, 0.12) !important;
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.3) !important;
+}
+body.azurify .box, body.azurify .nav-tabs-custom, body.azurify .modal-content, body.azurify .panel {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: none !important;
+  border-radius: 18px !important;
+}
+body.azurify .box.box-primary, body.azurify .box.box-info, body.azurify .box.box-success,
+body.azurify .box.box-danger, body.azurify .box.box-warning { box-shadow: none !important; }
+body.azurify .btn-primary, body.azurify .btn-info { background: #22d3ee !important; color: #03121c !important; box-shadow: none; }
+body.azurify .btn-primary:hover, body.azurify .btn-info:hover { background: #67e8f9 !important; }
+body.azurify .btn-success { background: rgba(52, 211, 153, 0.16) !important; color: #6ee7b7 !important; }
+body.azurify .btn-danger { background: rgba(248, 113, 113, 0.16) !important; color: #fca5a5 !important; }
+body.azurify .btn-warning { background: rgba(251, 191, 36, 0.16) !important; color: #fcd34d !important; }
+body.azurify .pagination > .active > a { background: #22d3ee !important; }
+body.azurify .content-header > h1 { font-size: 28px; font-weight: 600; }
+
+/* control center (admin overview) */
+.az-cc { display: flex; flex-direction: column; gap: 18px; }
+.az-cc-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.az-cc-actions .btn { height: 42px; padding: 0 16px; display: inline-flex; align-items: center; }
+.az-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1100px) { .az-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.az-kpi, .az-card { padding: 20px; border-radius: 18px; background: var(--az-glass); border: 1px solid var(--az-line); }
+.az-kpi { display: flex; flex-direction: column; gap: 6px; }
+.az-kpi span { font-size: 13px; color: #8ea0ba; }
+.az-kpi strong { font-family: "Sora", "Inter", sans-serif; font-size: 28px; font-weight: 600; color: #e6edf7 !important; }
+.az-kpi small { font-size: 12px; color: #67e8f9 !important; }
+.az-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.az-grow { flex: 2 1 460px; min-width: 0; }
+.az-side { flex: 1 1 300px; min-width: 0; }
+.az-card h2 { margin: 0 0 14px; font-size: 17px; font-weight: 600; color: #e6edf7; }
+.az-node { padding: 14px 0; border-top: 1px solid rgba(148, 197, 255, 0.08); }
+.az-node:first-of-type { border-top: 0; padding-top: 0; }
+.az-node-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.az-meter { margin-top: 10px; }
+.az-meter-top { display: flex; justify-content: space-between; font-size: 13px; color: #8ea0ba; }
+.az-meter-top span:last-child { color: #dbe5f2; }
+.az-track { height: 8px; margin-top: 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.az-fill, .az-hot { height: 100%; border-radius: 99px; background: #22d3ee; }
+.az-hot { background: #fb923c; }
+.az-small { font-size: 12px; margin: 10px 0 0; }
+.az-person { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); margin-bottom: 8px; }
+.az-person strong { display: block; font-size: 14px; }
+.az-person small { display: block; font-size: 12px; color: #8ea0ba !important; }
+.az-initial { width: 34px; height: 34px; flex: none; border-radius: 10px; background: #0e7490; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }

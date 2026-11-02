@@ -171,6 +171,24 @@ class StaffGate
         return array_keys(array_filter($map, fn ($perm) => !self::allows($user, $perm)));
     }
 
+    /**
+     * What the client interface needs to shape its menus: role plus effective permissions.
+     */
+    public static function clientInfo(?User $user): array
+    {
+        if (!$user) {
+            return ['role' => 'guest', 'permissions' => []];
+        }
+        if (self::isOwner($user)) {
+            return ['role' => 'owner', 'permissions' => array_keys(self::PERMISSIONS)];
+        }
+        if (self::isStaff($user)) {
+            return ['role' => 'staff', 'permissions' => self::staffPermissions($user)];
+        }
+
+        return ['role' => 'client', 'permissions' => []];
+    }
+
     public static function forget(int $userId): void
     {
         unset(self::$cache[$userId]);
