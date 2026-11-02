@@ -64,7 +64,7 @@ valid_port "$NODE_PORT" || die "Invalid node port."
 ask SFTP_PORT AZ_SFTP_PORT "SFTP (file upload) port [2022]: "
 SFTP_PORT="${SFTP_PORT:-2022}"
 valid_port "$SFTP_PORT" || die "Invalid SFTP port."
-ask APP_PORTS AZ_APP_PORTS "Ports for your servers/apps, e.g. 3000-3050 [3000-3050, or 'none']: "
+ask APP_PORTS AZ_APP_PORTS "Ports for your servers/apps, one or more ranges, e.g. 3000-3010,2000-2010,25565 [3000-3050, or 'none']: "
 APP_PORTS="${APP_PORTS:-3000-3050}"
 [ "$APP_PORTS" = none ] && APP_PORTS=""
 
@@ -75,13 +75,19 @@ for pair in "panel:$PANEL_PORT" "node:$NODE_PORT" "SFTP:$SFTP_PORT"; do
   for u in $USED; do [ "$port" = "$u" ] && die "The $name port $port is already used (by SSH, SSL or another answer). Pick another."; done
   USED="$USED $port"
 done
-APP_FROM=""; APP_TO=""
+# server/app ports: comma-separated ranges or single ports, normalised to "from-to" entries
+APP_RANGES=()
 if [ -n "$APP_PORTS" ]; then
-  [[ "$APP_PORTS" =~ ^([0-9]{4,5})(-([0-9]{4,5}))?$ ]] || die "Server ports must look like 3000-3050 (or a single port like 25565, from 1025 up)."
-  APP_FROM=${BASH_REMATCH[1]}; APP_TO=${BASH_REMATCH[3]:-$APP_FROM}
-  [ "$APP_FROM" -gt 1024 ] && [ "$APP_TO" -le 65535 ] && [ "$APP_FROM" -le "$APP_TO" ] || die "Server ports must be between 1025 and 65535, low-high."
-  [ $((APP_TO - APP_FROM)) -lt 1000 ] || die "Use at most 1000 server ports at once."
-  for u in $USED; do [ "$u" -ge "$APP_FROM" ] && [ "$u" -le "$APP_TO" ] && die "Server ports $APP_PORTS include port $u, which is already used. Pick another range."; done
+  IFS=',' read -ra PARTS <<< "${APP_PORTS// /}"
+  for part in "${PARTS[@]}"; do
+    [ -n "$part" ] || continue
+    [[ "$part" =~ ^([0-9]{1,5})(-([0-9]{1,5}))?$ ]] || die "'$part' is not a port or range. Use e.g. 3000-3010,2000-2010,25565"
+    from=${BASH_REMATCH[1]}; to=${BASH_REMATCH[3]:-$from}
+    [ "$from" -ge 1 ] && [ "$to" -le 65535 ] && [ "$from" -le "$to" ] || die "Range $part must be low-high between 1 and 65535."
+    [ $((to - from)) -lt 1000 ] || die "Range $part is too big (max 1000 ports per range)."
+    for u in $USED; do [ "$u" -ge "$from" ] && [ "$u" -le "$to" ] && die "Range $part includes port $u, which is already used (SSH, SSL, panel, node or SFTP). Pick another range."; done
+    APP_RANGES+=("$from-$to")
+  done
 fi
 
 # free a chosen port if something else holds it
@@ -283,9 +289,10 @@ php artisan p:node:configuration 1 > /etc/pterodactyl/config.yml
 
 # server/app ports: create them on the node so they can be picked when creating a server
 PUBLIC_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<NF;i++) if($i=="src"){print $(i+1); exit}}' || true)
-if [ -n "$APP_FROM" ] && [ -n "$PUBLIC_IP" ]; then
-  if php "$SRC/setup/azurify-ports.php" "$PANEL_DIR" 1 "$PUBLIC_IP" "$DOMAIN" "$APP_FROM-$APP_TO"; then
-    ok "Server ports $APP_FROM-$APP_TO added to node-1 ($PUBLIC_IP, shown as $DOMAIN)"
+APP_LABEL=""; [ "${#APP_RANGES[@]}" -gt 0 ] && APP_LABEL=$(printf '%s, ' "${APP_RANGES[@]}" | sed 's/, $//')
+if [ "${#APP_RANGES[@]}" -gt 0 ] && [ -n "$PUBLIC_IP" ]; then
+  if php "$SRC/setup/azurify-ports.php" "$PANEL_DIR" 1 "$PUBLIC_IP" "$DOMAIN" "${APP_RANGES[@]}"; then
+    ok "Server ports $APP_LABEL added to node-1 ($PUBLIC_IP, shown as $DOMAIN)"
   else
     echo -e "${c_r}Could not add server ports automatically.${c_0} Add them in Admin > Nodes > node-1 > Allocation."
     SETUP_OK=0
@@ -311,8 +318,11 @@ systemctl daemon-reload && systemctl enable --now wings
 # firewall: open every port the panel needs (SSH first so the connection is never cut)
 say "Opening firewall ports"
 FW_PORTS="$SSH_PORT/tcp 80/tcp $PANEL_PORT/tcp $NODE_PORT/tcp $SFTP_PORT/tcp"
-[ -n "$APP_FROM" ] && FW_PORTS="$FW_PORTS $APP_FROM:$APP_TO/tcp $APP_FROM:$APP_TO/udp"
-[ "$APP_FROM" = "$APP_TO" ] && [ -n "$APP_FROM" ] && FW_PORTS="$SSH_PORT/tcp 80/tcp $PANEL_PORT/tcp $NODE_PORT/tcp $SFTP_PORT/tcp $APP_FROM/tcp $APP_FROM/udp"
+for r in "${APP_RANGES[@]}"; do
+  from=${r%-*}; to=${r#*-}
+  if [ "$from" = "$to" ]; then spec="$from"; else spec="$from:$to"; fi
+  FW_PORTS="$FW_PORTS $spec/tcp $spec/udp"
+done
 FW_PORTS=$(echo $FW_PORTS | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
 for rule in $FW_PORTS; do ufw allow "$rule" >/dev/null; done
 if [ "${AZ_UFW_ENABLE:-1}" = 1 ]; then
@@ -322,13 +332,13 @@ ufw reload >/dev/null 2>&1 || true
 ok "Firewall (ufw) allows: $(echo $FW_PORTS | sed 's# #, #g')"
 
 PORT_LIST=$(printf '%s\n' "$PANEL_PORT" 80 "$NODE_PORT" "$SFTP_PORT" | awk '!seen[$0]++' | paste -sd, - | sed 's/,/, /g')
-[ -n "$APP_FROM" ] && PORT_LIST="$PORT_LIST, $APP_FROM-$APP_TO (tcp+udp)"
+[ -n "$APP_LABEL" ] && PORT_LIST="$PORT_LIST, $APP_LABEL (tcp+udp)"
 echo
 echo -e "${c_g}AZURIFY Host is ready${c_0}"
 echo "  Panel : $PANEL_URL"
 echo "  Login : $ADMIN_USER  (the password you entered)"
 echo "  Node  : node-1 (this VPS, node port $NODE_PORT, SFTP $SFTP_PORT)"
-[ -n "$APP_FROM" ] && echo "  Server ports: $APP_FROM-$APP_TO, ready to pick when you create a server"
+[ -n "$APP_LABEL" ] && echo "  Server ports: $APP_LABEL, ready to pick when you create a server"
 echo "  This VPS firewall is open for: $PORT_LIST"
 echo "  If your VPS provider has its own cloud firewall, open the same ports there too."
 if [ -s "$CRED_FILE" ]; then

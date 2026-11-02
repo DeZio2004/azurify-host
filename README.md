@@ -16,7 +16,7 @@ It asks: domain, admin username, email, password, then the ports:
 | Panel port | 443 | the website you log in to |
 | Node port | 8080 | live console and server control (wings) |
 | SFTP port | 2022 | uploading files to servers |
-| Server ports | 3000-3050 | ports your servers/apps can use (`none` to skip) |
+| Server ports | 3000-3050 | one or more ranges, e.g. `3000-3010,2000-2010,1000-1010` (`none` to skip) |
 
 If a port is busy, it shows what holds it and offers to stop that service. Server ports are added to the node
 automatically, and the firewall (ufw) is turned on with SSH, 80 and all of the ports above allowed.
