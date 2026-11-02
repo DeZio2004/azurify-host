@@ -106,7 +106,7 @@ curl -fsSL https://github.com/pterodactyl/panel/releases/latest/download/panel.t
 chmod -R 755 storage/* bootstrap/cache/
 cp -n .env.example .env
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
-php artisan key:generate --force
+grep -q "^APP_KEY=base64" .env || php artisan key:generate --force --no-interaction
 
 say "Configuring panel"
 php artisan p:environment:setup --author="$EMAIL" --url="$PANEL_URL" --timezone="UTC" \
