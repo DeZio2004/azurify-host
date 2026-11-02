@@ -29,86 +29,126 @@ ARCH=amd64; [ "$(uname -m)" = "aarch64" ] && ARCH=arm64
 #   AZ_DOMAIN AZ_USER AZ_EMAIL AZ_PASS AZ_PORT AZ_NODE_PORT AZ_SFTP_PORT AZ_APP_PORTS
 #   (+ AZ_SSL=0 to skip Let's Encrypt, AZ_FREE_PORT=y, AZ_UFW_ENABLE=0 to leave ufw off)
 ask() { local var=$1 env=$2 prompt=$3; if [ -n "${!env:-}" ]; then printf -v "$var" '%s' "${!env}"; else read -rp "$prompt" "$var"; fi; }
-echo -e "
-${c_b}AZURIFY Host installer${c_0}
-"
-ask DOMAIN AZ_DOMAIN "Panel domain (e.g. panel.example.com, DNS must point to this VPS): "
-[ -n "$DOMAIN" ] || die "Domain is required."
-ask ADMIN_USER AZ_USER "Admin username: "
-[[ "$ADMIN_USER" =~ ^[A-Za-z0-9_.-]{3,}$ ]] || die "Username: 3+ chars, letters/numbers/._-"
-while :; do
-  ask EMAIL AZ_EMAIL "Admin email (used for login, password reset and SSL notices): "
-  [[ "$EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] && break
-  [ -n "${AZ_EMAIL:-}" ] && die "AZ_EMAIL is not a valid email."
-  echo "Enter a valid email, e.g. you@gmail.com"
-done
+
+# ask_valid VAR ENV "prompt" DEFAULT CHECK
+# Asks until CHECK accepts the answer. CHECK prints why an answer is wrong and returns 1.
+# With the answer preset in ENV (unattended install) a wrong value stops the installer instead.
+ask_valid() {
+  local var=$1 env=$2 prompt=$3 def=$4 check=$5 val msg
+  while :; do
+    if [ -n "${!env:-}" ]; then val=${!env}; else read -rp "$prompt" val; fi
+    val="${val#"${val%%[![:space:]]*}"}"; val="${val%"${val##*[![:space:]]}"}"   # trim spaces
+    [ -z "$val" ] && val=$def
+    if msg=$($check "$val"); then printf -v "$var" '%s' "$val"; return 0; fi
+    [ -n "${!env:-}" ] && die "$env: $msg"
+    echo -e "  ${c_r}${msg:-That answer is not valid.}${c_0} Please try again."
+  done
+}
+
+check_domain() {
+  [ -n "$1" ] || { echo "A domain is required."; return 1; }
+  [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$ ]] \
+    || { echo "'$1' is not a domain. Use something like panel.example.com (no http://, no spaces)."; return 1; }
+  return 0
+}
+check_user() {
+  [[ "$1" =~ ^[A-Za-z0-9_.-]{3,191}$ ]] || { echo "Username needs 3+ characters: letters, numbers, . _ or -"; return 1; }
+  return 0
+}
+check_email() {
+  [[ "$1" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] || { echo "'$1' is not an email address, e.g. you@gmail.com"; return 1; }
+  return 0
+}
+
+echo -e "\n${c_b}AZURIFY Host installer${c_0}\n"
+ask_valid DOMAIN AZ_DOMAIN "Panel domain (e.g. panel.example.com, DNS must point to this VPS): " "" check_domain
+ask_valid ADMIN_USER AZ_USER "Admin username: " "" check_user
+ask_valid EMAIL AZ_EMAIL "Admin email (used for login, password reset and SSL notices): " "" check_email
 if [ -n "${AZ_PASS:-}" ]; then
   ADMIN_PASS="$AZ_PASS"; [ "${#ADMIN_PASS}" -ge 8 ] || die "AZ_PASS must be 8+ chars."
 else
   while :; do
     read -rsp "Admin password (min 8 chars): " ADMIN_PASS; echo
-    [ "${#ADMIN_PASS}" -ge 8 ] || { echo "Too short."; continue; }
+    [ "${#ADMIN_PASS}" -ge 8 ] || { echo -e "  ${c_r}Too short (min 8 characters).${c_0} Please try again."; continue; }
     read -rsp "Repeat password: " P2; echo
-    [ "$ADMIN_PASS" = "$P2" ] && break || echo "Passwords differ."
+    [ "$ADMIN_PASS" = "$P2" ] && break || echo -e "  ${c_r}Passwords differ.${c_0} Please try again."
   done
 fi
-valid_port() { [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]; }
+
+# ---- ports: every port must be different (80 is needed for the SSL certificate, SSH must stay reachable)
 SSH_PORT=$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}' || true); SSH_PORT="${SSH_PORT:-22}"
-
-ask PANEL_PORT AZ_PORT "Panel HTTPS port [443]: "
-PANEL_PORT="${PANEL_PORT:-443}"
-valid_port "$PANEL_PORT" || die "Invalid panel port."
-ask NODE_PORT AZ_NODE_PORT "Node (wings) port [8080]: "
-NODE_PORT="${NODE_PORT:-8080}"
-valid_port "$NODE_PORT" || die "Invalid node port."
-ask SFTP_PORT AZ_SFTP_PORT "SFTP (file upload) port [2022]: "
-SFTP_PORT="${SFTP_PORT:-2022}"
-valid_port "$SFTP_PORT" || die "Invalid SFTP port."
-ask APP_PORTS AZ_APP_PORTS "Ports for your servers/apps, one or more ranges, e.g. 3000-3010,2000-2010,25565 [3000-3050, or 'none']: "
-APP_PORTS="${APP_PORTS:-3000-3050}"
-[ "$APP_PORTS" = none ] && APP_PORTS=""
-
-# every port must be different (80 is needed for the SSL certificate, SSH must stay reachable)
 USED="80 $SSH_PORT"; [ "${AZ_SSL:-1}" = 0 ] && USED="$SSH_PORT"
-for pair in "panel:$PANEL_PORT" "node:$NODE_PORT" "SFTP:$SFTP_PORT"; do
-  name=${pair%%:*}; port=${pair#*:}
-  for u in $USED; do [ "$port" = "$u" ] && die "The $name port $port is already used (by SSH, SSL or another answer). Pick another."; done
-  USED="$USED $port"
-done
-# server/app ports: comma-separated ranges or single ports, normalised to "from-to" entries
+
+check_port() {
+  [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ] || { echo "'$1' is not a port (1-65535)."; return 1; }
+  for u in $USED; do
+    [ "$1" = "$u" ] && { echo "Port $1 is already taken (SSH is $SSH_PORT, 80 is for SSL, or you used it above)."; return 1; }
+  done
+  return 0
+}
+
+holder() { ss -ltnpH "sport = :$1" 2>/dev/null | head -1; }
+# returns 0 when the port is free (or was freed on request)
+port_free() {
+  local port=$1 answer PID UNIT
+  [ -n "$(holder "$port")" ] || return 0
+  echo -e "\n  Port $port is in use by:\n    $(holder "$port")"
+  if [ -n "${AZ_FREE_PORT:-}" ]; then answer=$AZ_FREE_PORT; else read -rp "  Stop/disable that service to free port $port? [y/N]: " answer; fi
+  [[ "$answer" =~ ^[Yy]$ ]] || return 1
+  PID=$(holder "$port" | grep -oP 'pid=\K[0-9]+' | head -1 || true)
+  UNIT=$( [ -n "$PID" ] && systemctl status "$PID" 2>/dev/null | grep -oE '[A-Za-z0-9@_.-]+\.service' | head -1 || true)
+  if [ -n "$UNIT" ]; then systemctl disable --now "$UNIT" >/dev/null 2>&1 || true; else [ -n "$PID" ] && kill "$PID" 2>/dev/null || true; fi
+  sleep 2
+  [ -z "$(holder "$port")" ] && { ok "Port $port freed."; return 0; }
+  echo -e "  ${c_r}Port $port is still busy.${c_0}"
+  return 1
+}
+
+# ask_port VAR ENV "prompt" DEFAULT LABEL
+ask_port() {
+  local var=$1 env=$2 prompt=$3 def=$4 label=$5 picked
+  while :; do
+    ask_valid picked "$env" "$prompt" "$def" check_port
+    if port_free "$picked"; then
+      printf -v "$var" '%s' "$picked"; USED="$USED $picked"; return 0
+    fi
+    [ -n "${!env:-}" ] && die "$env: port $picked is busy."
+    echo "  Choose a different $label port."
+  done
+}
+
+ask_port PANEL_PORT AZ_PORT "Panel HTTPS port [443]: " 443 panel
+ask_port NODE_PORT AZ_NODE_PORT "Node (wings) port [8080]: " 8080 node
+ask_port SFTP_PORT AZ_SFTP_PORT "SFTP (file upload) port [2022]: " 2022 SFTP
+
+# server/app ports: comma-separated ranges or single ports
+check_ranges() {
+  local value=${1// /} part from to u
+  [ "$value" = none ] && return 0
+  IFS=',' read -ra _parts <<< "$value"
+  [ "${#_parts[@]}" -gt 0 ] || { echo "Enter ranges like 3000-3010,2000-2010 or 'none'."; return 1; }
+  for part in "${_parts[@]}"; do
+    [ -n "$part" ] || continue
+    [[ "$part" =~ ^([0-9]{1,5})(-([0-9]{1,5}))?$ ]] || { echo "'$part' is not a port or range. Use e.g. 3000-3010,2000-2010,25565"; return 1; }
+    from=${BASH_REMATCH[1]}; to=${BASH_REMATCH[3]:-$from}
+    [ "$from" -ge 1 ] && [ "$to" -le 65535 ] && [ "$from" -le "$to" ] || { echo "Range $part must be low-high between 1 and 65535."; return 1; }
+    [ $((to - from)) -lt 1000 ] || { echo "Range $part is too big (max 1000 ports per range)."; return 1; }
+    for u in $USED; do
+      [ "$u" -ge "$from" ] && [ "$u" -le "$to" ] && { echo "Range $part includes port $u, which is already taken (SSH, SSL, panel, node or SFTP)."; return 1; }
+    done
+  done
+  return 0
+}
+ask_valid APP_PORTS AZ_APP_PORTS "Ports for your servers/apps, one or more ranges, e.g. 3000-3010,2000-2010,25565 [3000-3050, or 'none']: " "3000-3050" check_ranges
 APP_RANGES=()
-if [ -n "$APP_PORTS" ]; then
+if [ "${APP_PORTS// /}" != none ]; then
   IFS=',' read -ra PARTS <<< "${APP_PORTS// /}"
   for part in "${PARTS[@]}"; do
     [ -n "$part" ] || continue
-    [[ "$part" =~ ^([0-9]{1,5})(-([0-9]{1,5}))?$ ]] || die "'$part' is not a port or range. Use e.g. 3000-3010,2000-2010,25565"
-    from=${BASH_REMATCH[1]}; to=${BASH_REMATCH[3]:-$from}
-    [ "$from" -ge 1 ] && [ "$to" -le 65535 ] && [ "$from" -le "$to" ] || die "Range $part must be low-high between 1 and 65535."
-    [ $((to - from)) -lt 1000 ] || die "Range $part is too big (max 1000 ports per range)."
-    for u in $USED; do [ "$u" -ge "$from" ] && [ "$u" -le "$to" ] && die "Range $part includes port $u, which is already used (SSH, SSL, panel, node or SFTP). Pick another range."; done
+    from=${part%-*}; to=${part#*-}
     APP_RANGES+=("$from-$to")
   done
 fi
-
-# free a chosen port if something else holds it
-holder() { ss -ltnpH "sport = :$1" 2>/dev/null | head -1; }
-free_port() {
-  local port=$1
-  [ -n "$(holder "$port")" ] || return 0
-  echo -e "\nPort $port is in use by:\n  $(holder "$port")"
-  ask FREE AZ_FREE_PORT "Stop/disable that service to free port $port? [y/N]: "
-  if [[ "$FREE" =~ ^[Yy]$ ]]; then
-    PID=$(holder "$port" | grep -oP 'pid=\K[0-9]+' | head -1 || true)
-    UNIT=$( [ -n "$PID" ] && systemctl status "$PID" 2>/dev/null | grep -oE '[A-Za-z0-9@_.-]+\.service' | head -1 || true)
-    if [ -n "$UNIT" ]; then systemctl disable --now "$UNIT" || true; else [ -n "$PID" ] && kill "$PID" || true; fi
-    sleep 2
-    [ -z "$(holder "$port")" ] || die "Port $port is still busy. Free it manually or choose another port."
-    ok "Port $port freed."
-  else
-    die "Choose another port and run again."
-  fi
-}
-for p in "$PANEL_PORT" "$NODE_PORT" "$SFTP_PORT"; do free_port "$p"; done
 
 DB_PASS=$(openssl rand -hex 16 2>/dev/null || head -c16 /dev/urandom | od -An -tx1 | tr -d ' \n')
 export DEBIAN_FRONTEND=noninteractive
