@@ -67,7 +67,7 @@ if ($a !== false) { $r=strrpos(substr($s, 0, $a), "<div class=\"row\">"); $n=str
   if ($r !== false && $n !== false) $s=substr($s, 0, $r).substr($s, $n); }
 file_put_contents($f,$s);' $V_DIR/admin/nests/index.blade.php
 # language files
-grep -rlE "Pterodactyl" resources/lang 2>/dev/null | xargs -r sed -i -E "s/Pterodactyl Panel/$BRAND_NAME Host/g; s/Pterodactyl/$BRAND_NAME/g"
+grep -rlE "Pterodactyl" resources/lang 2>/dev/null | xargs -r sed -i -E "s/Pterodactyl Panel/$BRAND_NAME Host/g; s/Pterodactyl/$BRAND_NAME/g" || true
 
 # ---- inject theme (replaces any older injection)
 for L in $V_DIR/templates/wrapper.blade.php $V_DIR/layouts/admin.blade.php $V_DIR/templates/auth/core.blade.php; do
