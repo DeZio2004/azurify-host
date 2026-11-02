@@ -7,6 +7,8 @@ import TransitionRouter from '@/TransitionRouter';
 import { useLocation } from 'react-router';
 import Spinner from '@/components/elements/Spinner';
 import routes from '@/routers/routes';
+import ContentContainer from '@/components/elements/ContentContainer';
+import tw from 'twin.macro';
 
 export default () => {
     const location = useLocation();
@@ -19,8 +21,14 @@ export default () => {
                         <Route path={'/'} exact>
                             <DashboardContainer />
                         </Route>
-                        {routes.account.map(({ path, component: Component }) => (
+                        {routes.account.map(({ path, name, component: Component }) => (
                             <Route key={path} path={`/account/${path}`.replace('//', '/')} exact>
+                                {name && (
+                                    <ContentContainer css={tw`pt-8`}>
+                                        <p css={tw`text-sm text-neutral-400`}>Your account</p>
+                                        <h1 css={tw`font-header text-2xl font-semibold text-neutral-50 mt-1`}>{name}</h1>
+                                    </ContentContainer>
+                                )}
                                 <Component />
                             </Route>
                         ))}

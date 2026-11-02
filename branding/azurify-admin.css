@@ -248,3 +248,40 @@ body.azurify .content-header > h1 { font-size: 28px; font-weight: 600; }
 .az-person strong { display: block; font-size: 14px; }
 .az-person small { display: block; font-size: 12px; color: #8ea0ba !important; }
 .az-initial { width: 34px; height: 34px; flex: none; border-radius: 10px; background: #0e7490; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+/* ---- v2 shell: same sidebar layout as the client app ---- */
+body.azurify .az-side-brand {
+  display: flex; align-items: center; gap: 10px; padding: 22px 22px 14px;
+  color: #e6edf7 !important; text-decoration: none !important;
+  font-family: "Sora", "Inter", sans-serif; font-weight: 700; font-size: 16px; letter-spacing: .16em; text-transform: uppercase;
+}
+body.azurify .az-side-brand img { width: 34px; height: 29px; object-fit: contain; }
+body.azurify .az-side-user {
+  margin: 18px 14px 16px; padding: 12px; display: flex; align-items: center; gap: 10px;
+  border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(148, 197, 255, 0.12);
+}
+body.azurify .az-side-user-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+body.azurify .az-side-user-text strong { font-size: 14px; color: #e6edf7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.azurify .az-side-user-text small { font-size: 12px; color: #8195b3 !important; }
+body.azurify .az-side-btn {
+  width: 36px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: rgba(255, 255, 255, 0.05); color: #b8c6da !important;
+}
+body.azurify .az-side-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff !important; }
+body.azurify .sidebar-menu > li.header { font-size: 11px !important; letter-spacing: .12em; padding: 14px 24px 6px !important; }
+body.azurify .sidebar-menu > li > a { margin: 2px 14px; min-height: 44px; display: flex !important; align-items: center; }
+
+@media (min-width: 768px) {
+  body.azurify .main-header { display: none; }
+  body.azurify.fixed .main-sidebar, body.azurify .main-sidebar { padding-top: 0 !important; width: 248px; display: flex; flex-direction: column; }
+  body.azurify .main-sidebar .sidebar { height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+  body.azurify .az-side-user { margin-top: auto; }
+  body.azurify.fixed .content-wrapper, body.azurify .content-wrapper { padding-top: 0 !important; margin-left: 248px !important; }
+  body.azurify .main-footer { margin-left: 248px !important; }
+  body.azurify .content-header { padding: 28px 32px 6px; }
+  body.azurify .content { padding: 18px 32px 32px; }
+  body.azurify .content-header > .breadcrumb { top: 30px; right: 32px; }
+}
+@media (max-width: 767px) {
+  body.azurify .az-side-brand { display: none; }
+}

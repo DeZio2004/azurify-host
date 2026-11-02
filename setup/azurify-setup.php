@@ -212,6 +212,31 @@ try {
              "                        </li>\n" .
              "                        @endif\n" .
              '                        <li class="header">SERVICE MANAGEMENT</li>'],
+            ["            <aside class=\"main-sidebar\">
+                <section class=\"sidebar\">",
+             "            <aside class=\"main-sidebar\">
+                <section class=\"sidebar\">
+" .
+             "                    <a href=\"{{ route('index') }}\" class=\"az-side-brand\"><img src=\"/azurify/logo.png\" alt=\"\"><span>{{ config('app.name') }}</span></a>"],
+            ["                    </ul>
+                </section>
+            </aside>",
+             "                    </ul>
+" .
+             "                    <div class=\"az-side-user\">
+" .
+             "                        <span class=\"az-initial\">{{ strtoupper(substr(Auth::user()->username, 0, 1)) }}</span>
+" .
+             "                        <div class=\"az-side-user-text\"><strong>{{ Auth::user()->username }}</strong><small>{{ {$gate}::isOwner(Auth::user()) ? 'Owner' : 'Staff' }}</small></div>
+" .
+             "                        <a href=\"{{ route('index') }}\" class=\"az-side-btn\" title=\"Client view\" aria-label=\"Client view\"><i class=\"fa fa-th-large\"></i></a>
+" .
+             "                        <a href=\"#\" class=\"az-side-btn\" title=\"Sign out\" aria-label=\"Sign out\" onclick=\"event.preventDefault(); document.getElementById('logoutButton').click();\"><i class=\"fa fa-sign-out\"></i></a>
+" .
+             "                    </div>
+" .
+             "                </section>
+            </aside>"],
             ['        <div class="wrapper">',
              "        @php(\$azHidden = {$gate}::hiddenMenuRoutes(Auth::user()))\n" .
              "        @if(count(\$azHidden))<style>@foreach(\$azHidden as \$azRoute).sidebar-menu li:has(> a[href=\"{{ route(\$azRoute) }}\"])@if(!\$loop->last),@endif @endforeach{display:none!important}</style>@endif\n" .
@@ -225,18 +250,22 @@ try {
             $failures[] = "Staff patch: $rel not found";
             continue;
         }
-        if (str_contains($src, 'Azurify\StaffGate')) {
-            continue; // already patched
-        }
+        $changed = false;
         foreach ($pairs as [$from, $to]) {
+            if (str_contains($src, $to)) {
+                continue; // this change is already in place
+            }
             if (!str_contains($src, $from)) {
-                $failures[] = "Staff patch: expected code not found in $rel (panel version changed?)";
-                continue 2;
+                $failures[] = "Patch: expected code not found in $rel (panel version changed?)";
+                continue;
             }
             $src = str_replace($from, $to, $src);
+            $changed = true;
         }
-        file_put_contents($path, $src);
-        say("patched $rel");
+        if ($changed) {
+            file_put_contents($path, $src);
+            say("patched $rel");
+        }
     }
 
     $routes = $panelDir . '/routes/admin.php';
