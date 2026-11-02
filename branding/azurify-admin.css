@@ -1,0 +1,187 @@
+/* AZURIFY Host - glass theme for the admin area (AdminLTE markup) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+body.azurify {
+  --az-bg: #060a16;
+  --az-blue: #3b82f6;
+  --az-cyan: #22d3ee;
+  --az-text: #e7eefb;
+  --az-muted: #93a3bf;
+  --az-glass: rgba(255, 255, 255, 0.055);
+  --az-glass-2: rgba(255, 255, 255, 0.09);
+  --az-line: rgba(255, 255, 255, 0.12);
+  --az-radius: 16px;
+  --az-blur: blur(20px) saturate(160%);
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif !important;
+  color: var(--az-text) !important;
+  background:
+    radial-gradient(1000px 640px at 8% -10%, rgba(59, 130, 246, 0.32), transparent 60%),
+    radial-gradient(900px 600px at 100% 10%, rgba(34, 211, 238, 0.18), transparent 60%),
+    radial-gradient(1000px 700px at 50% 120%, rgba(99, 102, 241, 0.25), transparent 60%),
+    var(--az-bg) !important;
+  background-attachment: fixed !important;
+}
+body.azurify .wrapper,
+body.azurify .content-wrapper,
+body.azurify .right-side { background: transparent !important; }
+body.azurify h1, body.azurify h2, body.azurify h3, body.azurify h4,
+body.azurify .box-title, body.azurify label, body.azurify strong { color: var(--az-text) !important; font-family: inherit !important; }
+body.azurify a { color: #7dd3fc; }
+body.azurify a:hover { color: #fff; }
+body.azurify .text-muted, body.azurify small, body.azurify .help-block, body.azurify .text-gray { color: var(--az-muted) !important; }
+body.azurify code { background: rgba(34, 211, 238, 0.12) !important; color: #a5f3fc !important; border-radius: 6px; padding: 2px 6px; }
+
+/* ---------- top bar + brand ---------- */
+body.azurify .main-header .navbar,
+body.azurify .main-header .logo {
+  background: rgba(8, 14, 30, 0.55) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border-bottom: 1px solid var(--az-line) !important;
+  box-shadow: none !important;
+}
+body.azurify .main-header .logo {
+  display: flex !important; align-items: center; justify-content: center; gap: 10px;
+  font-weight: 700 !important; letter-spacing: .14em; font-size: 17px !important; color: #fff !important;
+  border-right: 1px solid var(--az-line) !important;
+}
+body.azurify .main-header .logo::before {
+  content: ""; width: 28px; height: 24px; flex: none;
+  background: url("/azurify/logo.png") center / contain no-repeat;
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, .6));
+}
+body.azurify .main-header .logo span {
+  background: linear-gradient(90deg, #fff, #7dd3fc); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+body.azurify.sidebar-collapse .main-header .logo span { display: none; }
+body.azurify .main-header .navbar .nav > li > a,
+body.azurify .main-header .sidebar-toggle { color: var(--az-text) !important; }
+body.azurify .main-header .navbar .nav > li > a:hover,
+body.azurify .main-header .sidebar-toggle:hover { background: var(--az-glass-2) !important; }
+body.azurify .main-header .user-image { border-radius: 8px; background: rgba(255,255,255,.08); object-fit: contain; padding: 2px; }
+
+/* ---------- sidebar ---------- */
+body.azurify .main-sidebar, body.azurify .left-side {
+  background: rgba(8, 14, 30, 0.5) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border-right: 1px solid var(--az-line);
+}
+body.azurify .sidebar-menu > li.header {
+  background: transparent !important; color: #5f7396 !important;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .14em; padding: 18px 20px 8px !important;
+}
+body.azurify .sidebar-menu > li > a {
+  margin: 2px 12px; border-radius: 12px; border-left: 0 !important;
+  color: #b6c3da !important; padding: 11px 14px !important; transition: background .2s, color .2s;
+}
+body.azurify .sidebar-menu > li > a > .fa { width: 22px; color: #6b84ad; transition: color .2s; }
+body.azurify .sidebar-menu > li:hover > a { background: var(--az-glass-2) !important; color: #fff !important; }
+body.azurify .sidebar-menu > li.active > a {
+  background: linear-gradient(135deg, rgba(59,130,246,.35), rgba(34,211,238,.18)) !important;
+  color: #fff !important; box-shadow: inset 0 0 0 1px rgba(125, 211, 252, .28), 0 8px 24px rgba(59,130,246,.18);
+}
+body.azurify .sidebar-menu > li.active > a > .fa,
+body.azurify .sidebar-menu > li:hover > a > .fa { color: var(--az-cyan); }
+
+/* ---------- page header ---------- */
+body.azurify .content-header > h1 { font-weight: 700; font-size: 26px; letter-spacing: -.01em; }
+body.azurify .content-header > h1 > small { color: var(--az-muted) !important; font-weight: 400; }
+body.azurify .content-header > .breadcrumb { background: var(--az-glass) !important; border: 1px solid var(--az-line); border-radius: 999px; padding: 6px 14px; top: 18px; }
+body.azurify .content-header > .breadcrumb > li > a,
+body.azurify .content-header > .breadcrumb > li { color: var(--az-muted) !important; }
+
+/* ---------- glass boxes ---------- */
+body.azurify .box, body.azurify .nav-tabs-custom, body.azurify .info-box, body.azurify .small-box,
+body.azurify .callout, body.azurify .modal-content, body.azurify .panel, body.azurify .well {
+  background: var(--az-glass) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border: 1px solid var(--az-line) !important;
+  border-radius: var(--az-radius) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .06) !important;
+  color: var(--az-text) !important;
+  overflow: hidden;
+}
+body.azurify .box { border-top: 1px solid var(--az-line) !important; }
+body.azurify .box.box-primary, body.azurify .box.box-info { box-shadow: 0 12px 40px rgba(0,0,0,.35), inset 0 2px 0 rgba(59,130,246,.8) !important; }
+body.azurify .box.box-success { box-shadow: 0 12px 40px rgba(0,0,0,.35), inset 0 2px 0 rgba(52,211,153,.85) !important; }
+body.azurify .box.box-danger { box-shadow: 0 12px 40px rgba(0,0,0,.35), inset 0 2px 0 rgba(248,113,113,.85) !important; }
+body.azurify .box.box-warning { box-shadow: 0 12px 40px rgba(0,0,0,.35), inset 0 2px 0 rgba(251,191,36,.85) !important; }
+body.azurify .box-header, body.azurify .box-footer, body.azurify .modal-header, body.azurify .modal-footer,
+body.azurify .panel-heading {
+  background: rgba(255, 255, 255, .03) !important; border-color: var(--az-line) !important; color: var(--az-text) !important;
+}
+body.azurify .box-header.with-border { border-bottom: 1px solid var(--az-line) !important; }
+body.azurify .box-header .box-title { font-weight: 600; font-size: 15px; }
+body.azurify .box-body, body.azurify .modal-body { background: transparent !important; color: var(--az-text) !important; }
+
+/* tabs */
+body.azurify .nav-tabs-custom > .nav-tabs { background: transparent !important; border-bottom: 1px solid var(--az-line) !important; }
+body.azurify .nav-tabs-custom > .nav-tabs > li > a { color: var(--az-muted) !important; }
+body.azurify .nav-tabs-custom > .nav-tabs > li.active { border-top-color: var(--az-cyan) !important; }
+body.azurify .nav-tabs-custom > .nav-tabs > li.active > a { background: var(--az-glass-2) !important; color: #fff !important; border-color: var(--az-line) !important; }
+body.azurify .nav-tabs-custom > .tab-content { background: transparent !important; }
+
+/* ---------- tables ---------- */
+body.azurify .table { background: transparent !important; color: var(--az-text) !important; }
+body.azurify .table > thead > tr > th, body.azurify .table > tbody > tr > th {
+  color: #8aa0c4 !important; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em;
+  border-bottom: 1px solid var(--az-line) !important; background: transparent !important;
+}
+body.azurify .table > tbody > tr > td { border-top: 1px solid rgba(255,255,255,.06) !important; vertical-align: middle; }
+body.azurify .table-hover > tbody > tr:hover, body.azurify .table-striped > tbody > tr:nth-of-type(odd) { background: rgba(255, 255, 255, .04) !important; }
+
+/* ---------- forms ---------- */
+body.azurify .form-control, body.azurify .input-group-addon,
+body.azurify .select2-container--default .select2-selection--single,
+body.azurify .select2-container--default .select2-selection--multiple {
+  background: rgba(255, 255, 255, .05) !important; border: 1px solid var(--az-line) !important;
+  color: var(--az-text) !important; border-radius: 10px !important; min-height: 38px; box-shadow: none !important;
+}
+body.azurify .input-group .form-control:not(:last-child), body.azurify .input-group-addon:first-child { border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }
+body.azurify .input-group .form-control:not(:first-child), body.azurify .input-group-addon:last-child { border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important; }
+body.azurify .form-control:focus { border-color: var(--az-cyan) !important; box-shadow: 0 0 0 3px rgba(34, 211, 238, .18) !important; }
+body.azurify .form-control[disabled], body.azurify .form-control[readonly] { background: rgba(255,255,255,.02) !important; color: var(--az-muted) !important; }
+body.azurify select.form-control option { background: #0d1426; color: var(--az-text); }
+body.azurify .select2-container--default .select2-selection__rendered { color: var(--az-text) !important; line-height: 36px !important; }
+body.azurify .select2-dropdown { background: #0d1426 !important; border-color: var(--az-line) !important; color: var(--az-text); }
+body.azurify .select2-results__option--highlighted { background: rgba(59,130,246,.35) !important; }
+
+/* ---------- buttons ---------- */
+body.azurify .btn { border-radius: 10px !important; font-weight: 600; border: 1px solid transparent !important; transition: transform .15s, box-shadow .15s, filter .15s; }
+body.azurify .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+body.azurify .btn-primary, body.azurify .btn-info { background: linear-gradient(135deg, #3b82f6, #22d3ee) !important; color: #04101f !important; box-shadow: 0 6px 20px rgba(59,130,246,.35); }
+body.azurify .btn-success { background: linear-gradient(135deg, #10b981, #34d399) !important; color: #03140d !important; }
+body.azurify .btn-danger { background: linear-gradient(135deg, #ef4444, #f87171) !important; color: #fff !important; }
+body.azurify .btn-warning { background: linear-gradient(135deg, #f59e0b, #fbbf24) !important; color: #1a1002 !important; }
+body.azurify .btn-default { background: var(--az-glass-2) !important; color: var(--az-text) !important; border-color: var(--az-line) !important; }
+
+/* labels, alerts, pagination */
+body.azurify .label { border-radius: 999px; padding: 3px 9px; font-weight: 600; }
+body.azurify .label-primary, body.azurify .bg-blue { background: rgba(59,130,246,.25) !important; color: #bfdbfe !important; }
+body.azurify .label-success, body.azurify .bg-green { background: rgba(16,185,129,.22) !important; color: #a7f3d0 !important; }
+body.azurify .label-danger, body.azurify .bg-red { background: rgba(239,68,68,.22) !important; color: #fecaca !important; }
+body.azurify .label-warning, body.azurify .bg-yellow { background: rgba(245,158,11,.22) !important; color: #fde68a !important; }
+body.azurify .label-default { background: rgba(255,255,255,.1) !important; color: var(--az-text) !important; }
+body.azurify .alert, body.azurify .callout { border-radius: 14px !important; border: 1px solid var(--az-line) !important; -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur); }
+body.azurify .alert-success, body.azurify .callout-success { background: rgba(16,185,129,.14) !important; color: #d1fae5 !important; }
+body.azurify .alert-danger, body.azurify .callout-danger { background: rgba(239,68,68,.14) !important; color: #fee2e2 !important; }
+body.azurify .alert-warning, body.azurify .callout-warning { background: rgba(245,158,11,.14) !important; color: #fef3c7 !important; }
+body.azurify .alert-info, body.azurify .callout-info { background: rgba(59,130,246,.14) !important; color: #dbeafe !important; }
+body.azurify .pagination > li > a, body.azurify .pagination > li > span { background: var(--az-glass) !important; border-color: var(--az-line) !important; color: var(--az-text) !important; }
+body.azurify .pagination > .active > a { background: linear-gradient(135deg, #3b82f6, #22d3ee) !important; color: #04101f !important; }
+body.azurify .progress { background: rgba(255,255,255,.08) !important; border-radius: 999px; }
+
+/* sweetalert / modals */
+body.azurify .sweet-alert { background: rgba(13, 20, 38, .92) !important; border: 1px solid var(--az-line); border-radius: 18px !important; -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur); }
+body.azurify .sweet-alert h2, body.azurify .sweet-alert p { color: var(--az-text) !important; }
+body.azurify .modal-backdrop.in { opacity: .6; }
+
+/* footer */
+body.azurify .main-footer {
+  background: rgba(8, 14, 30, .5) !important; border-top: 1px solid var(--az-line) !important; color: var(--az-muted) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+}
+
+/* scrollbars */
+body.azurify ::-webkit-scrollbar { width: 10px; height: 10px; }
+body.azurify ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 8px; }
+body.azurify ::-webkit-scrollbar-track { background: transparent; }

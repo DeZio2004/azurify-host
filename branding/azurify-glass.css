@@ -1,63 +1,184 @@
-/* AZURIFY Host - modern glass theme (loaded on every panel page) */
+/* AZURIFY Host - glass theme for the client area and login (React app) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
 :root {
+  --az-bg: #060a16;
   --az-blue: #3b82f6;
   --az-cyan: #22d3ee;
-  --az-glass: rgba(255, 255, 255, 0.07);
-  --az-glass-strong: rgba(255, 255, 255, 0.12);
-  --az-border: rgba(255, 255, 255, 0.16);
+  --az-text: #e7eefb;
+  --az-muted: #93a3bf;
+  --az-glass: rgba(255, 255, 255, 0.055);
+  --az-glass-2: rgba(255, 255, 255, 0.09);
+  --az-line: rgba(255, 255, 255, 0.12);
+  --az-blur: blur(20px) saturate(160%);
 }
 
-html, body {
+html, body, body.bg-neutral-50, body.bg-neutral-800, body.bg-neutral-900 {
   min-height: 100%;
   background:
-    radial-gradient(900px 600px at 12% 8%, rgba(59, 130, 246, 0.35), transparent 60%),
-    radial-gradient(800px 600px at 88% 18%, rgba(34, 211, 238, 0.22), transparent 60%),
-    radial-gradient(900px 700px at 50% 100%, rgba(99, 102, 241, 0.28), transparent 60%),
-    #070b17 !important;
+    radial-gradient(1000px 640px at 8% -10%, rgba(59, 130, 246, 0.32), transparent 60%),
+    radial-gradient(900px 600px at 100% 10%, rgba(34, 211, 238, 0.18), transparent 60%),
+    radial-gradient(1000px 700px at 50% 120%, rgba(99, 102, 241, 0.25), transparent 60%),
+    var(--az-bg) !important;
   background-attachment: fixed !important;
-  color: #e6edf8;
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  color: var(--az-text);
 }
+body, button, input, select, textarea { font-family: "Inter", "Segoe UI", system-ui, sans-serif !important; }
+#app { background: transparent !important; }
 
-/* elements tagged by azurify-glass.js (they had a solid dark background) */
+/* ---------- top navigation ---------- */
+.w-full.bg-neutral-900.shadow-md {
+  background: rgba(8, 14, 30, 0.55) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border-bottom: 1px solid var(--az-line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .25) !important;
+  position: sticky; top: 0; z-index: 30;
+}
+#logo { display: flex; align-items: center; }
+#logo a {
+  display: inline-flex !important; align-items: center; gap: 10px;
+  font-weight: 700 !important; letter-spacing: .14em; font-size: 20px !important;
+  background: linear-gradient(90deg, #fff, #7dd3fc); -webkit-background-clip: text; background-clip: text; color: transparent !important;
+}
+#logo a::before {
+  content: ""; width: 30px; height: 26px; flex: none;
+  background: url("/azurify/logo.png") center / contain no-repeat;
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, .6));
+}
+[class*="NavigationBar__RightNavigation"] > a,
+[class*="NavigationBar__RightNavigation"] > button { border-radius: 10px; margin: 6px 2px; transition: background .2s, color .2s; }
+[class*="NavigationBar__RightNavigation"] > a:hover,
+[class*="NavigationBar__RightNavigation"] > a.active,
+[class*="NavigationBar__RightNavigation"] > button:hover {
+  background: var(--az-glass-2) !important; color: #fff !important; box-shadow: none !important;
+}
+[class*="NavigationBar__RightNavigation"] > a.active { box-shadow: inset 0 -2px 0 var(--az-cyan) !important; }
+
+/* server sub navigation (Console / Files / Databases ...) */
+[class*="SubNavigation"] {
+  background: rgba(8, 14, 30, 0.42) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border-bottom: 1px solid var(--az-line); box-shadow: none !important;
+}
+[class*="SubNavigation"] a { border-radius: 10px; transition: background .2s, color .2s; }
+[class*="SubNavigation"] a:hover { background: var(--az-glass-2) !important; color: #fff !important; }
+[class*="SubNavigation"] a.active { color: #fff !important; box-shadow: inset 0 -2px 0 var(--az-cyan) !important; }
+
+/* ---------- glass surfaces ---------- */
+[class*="GreyRowBox"],
+[class*="TitledGreyBox___StyledDiv"]:not([class*="StyledDiv2"]):not([class*="StyledDiv3"]),
+[class*="ContentBox___StyledDiv"], [class*="Modal___StyledDiv"],
+[class*="ScheduleCheatsheetCards"], [class*="PermissionTitleBox"],
 .az-g {
   background-color: var(--az-glass) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
-  backdrop-filter: blur(18px) saturate(160%);
-  border: 1px solid var(--az-border) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border: 1px solid var(--az-line) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .06) !important;
 }
-.az-g.az-g-strong { background-color: var(--az-glass-strong) !important; }
+.az-g.az-g-strong { background-color: var(--az-glass-2) !important; }
 
-/* inputs and buttons */
-input, select, textarea {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid var(--az-border) !important;
-  color: #f1f5ff !important;
+/* newer screens use Tailwind utility classes directly */
+#app div.bg-gray-600, #app div.bg-gray-700, #app div.bg-neutral-600, #app div.bg-neutral-700 {
+  background-color: var(--az-glass) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border: 1px solid var(--az-line) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .06) !important;
+}
+#app div.bg-gray-600:hover, #app div.bg-neutral-600:hover { border-color: rgba(125, 211, 252, .35) !important; }
+#app div.bg-gray-800:not(.w-full), #app div.bg-gray-900, #app div.bg-neutral-800:not(.w-full), #app div.bg-neutral-900:not(.w-full) {
+  background-color: rgba(3, 6, 15, .5) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border: 1px solid var(--az-line) !important;
+  border-radius: 14px !important;
+}
+#app div.bg-gray-600 div.bg-gray-600, #app div.bg-gray-700 div.bg-gray-700 { background-color: rgba(255,255,255,.05) !important; box-shadow: none !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.az-chip {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   border-radius: 10px !important;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  box-shadow: none !important;
+}
+[class*="GreyRowBox"] { transition: transform .2s, border-color .2s, box-shadow .2s; }
+a[class*="GreyRowBox"]:hover, [class*="GreyRowBox"]:hover {
+  border-color: rgba(125, 211, 252, .45) !important; transform: translateY(-2px);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .4), 0 0 0 1px rgba(34, 211, 238, .15) !important;
+}
+[class*="TitledGreyBox___StyledDiv2"] { background: rgba(255,255,255,.03) !important; border-bottom: 1px solid var(--az-line) !important; }
+[class*="TitledGreyBox___StyledDiv3"] { background: transparent !important; }
+[class*="Modal__ModalMask"], .fixed.inset-0.bg-gray-900\/50 { background: rgba(3, 6, 15, .6) !important; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+[class*="Modal__ModalContainer"] > div:last-child, [class*="Modal___StyledDiv2"] {
+  background: rgba(13, 20, 38, .82) !important; border: 1px solid var(--az-line) !important; border-radius: 18px !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+}
+/* status pill on each server card */
+[class*="ServerRow__StatusIndicatorBox"]::before { border-radius: 16px 0 0 16px; }
+[class*="ServerRow__IconDescription"] { color: #9fb0cc !important; }
+[class*="GreyRowBox"] .az-chip:first-child:has(> svg) {
+  background: linear-gradient(135deg, rgba(59,130,246,.4), rgba(34,211,238,.22)) !important; border-color: rgba(125,211,252,.3) !important;
+}
+[class*="GreyRowBox"] .az-chip:first-child:has(> svg) svg { color: #e0f2fe !important; }
+
+/* ---------- login / forgot / reset ---------- */
+[class*="LoginFormContainer___StyledDiv"]:not([class*="StyledDiv2"]):not([class*="StyledDiv3"]) {
+  background: rgba(13, 20, 38, 0.55) !important;
+  -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur);
+  border: 1px solid var(--az-line) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .08) !important;
+  padding: 2rem !important;
+}
+[class*="LoginFormContainer___StyledImg"] {
+  width: 10rem !important; filter: drop-shadow(0 10px 30px rgba(34, 211, 238, .45));
+  animation: az-float 6s ease-in-out infinite;
+}
+@keyframes az-float { 50% { transform: translateY(-8px); } }
+[class*="LoginFormContainer___StyledDiv2"] { border-right: 1px solid var(--az-line); }
+[class*="LoginFormContainer___StyledH"], [class*="LoginContainer"] h2 {
+  color: #fff !important; font-weight: 700 !important; letter-spacing: -.01em;
+}
+[class*="LoginFormContainer"] label, [class*="Label"] { color: #b6c3da !important; letter-spacing: .08em; }
+[class*="LoginFormContainer"] a, [class*="LoginContainer___StyledLink"] { color: #7dd3fc !important; }
+[class*="LoginFormContainer___StyledA"] { color: var(--az-muted) !important; }
+
+/* ---------- inputs ---------- */
+input[class*="Input"], textarea[class*="Input"], select[class*="Select"],
+[class*="Input__Textarea"], input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--az-line) !important;
+  color: var(--az-text) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
 }
 input:focus, select:focus, textarea:focus {
   border-color: var(--az-cyan) !important;
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2) !important;
-  outline: none;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18) !important;
+  outline: none !important;
 }
-button { border-radius: 10px !important; transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease; }
-button:hover:not(:disabled) { transform: translateY(-1px); }
-button[class*="primary"], button[type="submit"] {
+input::placeholder, textarea::placeholder { color: #6b7a96 !important; }
+select option { background: #0d1426; color: var(--az-text); }
+
+/* ---------- buttons ---------- */
+button, [class*="Button__ButtonStyle"] { border-radius: 10px !important; transition: transform .15s ease, box-shadow .15s ease, filter .15s ease !important; }
+button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08); }
+button[type="submit"]:not([class*="danger"]), [class*="Button__ButtonStyle"][color="primary"], .bg-blue-600, .\!bg-blue-600 {
   background-image: linear-gradient(135deg, var(--az-blue), var(--az-cyan)) !important;
-  border: 0 !important;
-  color: #04101f !important;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  border-color: transparent !important; color: #04101f !important; font-weight: 600 !important;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35) !important;
 }
 
+/* ---------- console / terminal ---------- */
+.xterm, .xterm-viewport, [class*="Console"] .xterm-screen { background: rgba(3, 6, 15, .72) !important; }
+[class*="ServerConsole"] [class*="bg-gray-900"], .bg-gray-900.rounded { background: rgba(3, 6, 15, .6) !important; border: 1px solid var(--az-line); }
+[class*="ProgressBar___StyledDiv"] { background: rgba(255,255,255,.08) !important; }
+[class*="ProgressBar__BarFill"] { background: linear-gradient(90deg, var(--az-blue), var(--az-cyan)) !important; }
+
+/* misc */
 a { color: #7dd3fc; }
-a:hover { color: #fff; }
-
+code { background: rgba(34, 211, 238, 0.12) !important; color: #a5f3fc !important; border-radius: 6px; }
+[class*="FlashMessageRender"] > div, [class*="MessageBox___StyledContainer"] { border-radius: 12px !important; -webkit-backdrop-filter: var(--az-blur); backdrop-filter: var(--az-blur); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-
-/* login screen branding */
-.az-login-logo { display:block; margin: 0 auto 18px; width: 120px; filter: drop-shadow(0 6px 24px rgba(59,130,246,.55)); }
+::selection { background: rgba(34, 211, 238, .35); color: #fff; }

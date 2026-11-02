@@ -137,26 +137,8 @@ systemctl daemon-reload && systemctl enable --now azurify-queue
 
 # ---------------------------------------------------------------- AZURIFY branding + glass theme
 say "Applying AZURIFY branding and glass theme"
-BR="$PANEL_DIR/public/azurify"; mkdir -p "$BR"
-for f in logo.png favicon.svg azurify-glass.css azurify-glass.js; do
-  curl -fsSL "$REPO_RAW/branding/$f" -o "$BR/$f" || echo "warning: could not fetch $f"
-done
-# images
-cp -f "$BR/logo.png" "$PANEL_DIR/public/favicons/android-chrome-192x192.png" 2>/dev/null || true
-cp -f "$BR/logo.png" "$PANEL_DIR/public/favicons/apple-touch-icon.png" 2>/dev/null || true
-cp -f "$BR/favicon.svg" "$PANEL_DIR/public/favicons/favicon.svg" 2>/dev/null || true
-# text: views, language files, compiled UI bundle (display strings only)
-grep -rlE "Pterodactyl" "$PANEL_DIR/resources/views" "$PANEL_DIR/resources/lang" 2>/dev/null \
-  | xargs -r sed -i -E "s/Pterodactyl Panel/AZURIFY Host/g; s/PterodactylÂ®?/AZURIFY/g"
-grep -rlE "Pterodactyl" "$PANEL_DIR/public/assets" --include='*.js' 2>/dev/null \
-  | xargs -r sed -i -E "s/Pterodactyl Panel/AZURIFY Host/g; s/([\"'> ])Pterodactyl([\"'< ])/\1AZURIFY\2/g; s/PterodactylÂ®/AZURIFY/g"
-# inject theme into every page layout
-for L in "$PANEL_DIR"/resources/views/templates/wrapper.blade.php "$PANEL_DIR"/resources/views/layouts/admin.blade.php "$PANEL_DIR"/resources/views/templates/auth/core.blade.php; do
-  [ -f "$L" ] || continue
-  grep -q azurify-glass "$L" || sed -i 's#</head>#<link rel="stylesheet" href="/azurify/azurify-glass.css"><script defer src="/azurify/azurify-glass.js"></script></head>#' "$L"
-done
-php artisan view:clear >/dev/null 2>&1 || true
-chown -R www-data:www-data "$PANEL_DIR"
+curl -fsSL "$REPO_RAW/brand.sh" -o /usr/local/bin/azurify-brand && chmod +x /usr/local/bin/azurify-brand
+AZURIFY_RAW="$REPO_RAW" PANEL_DIR="$PANEL_DIR" /usr/local/bin/azurify-brand
 
 # ---------------------------------------------------------------- nginx
 say "Configuring web server on port $PANEL_PORT"
