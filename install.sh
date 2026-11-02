@@ -27,6 +27,10 @@ read -rp "Panel domain (e.g. panel.example.com, DNS must point to this VPS): " D
 read -rp "Admin username: " ADMIN_USER
 [[ "$ADMIN_USER" =~ ^[A-Za-z0-9_.-]{3,}$ ]] || die "Username: 3+ chars, letters/numbers/._-"
 while :; do
+  read -rp "Admin email (used for login, password reset and SSL notices): " EMAIL
+  [[ "$EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] && break || echo "Enter a valid email, e.g. you@gmail.com"
+done
+while :; do
   read -rsp "Admin password (min 8 chars): " ADMIN_PASS; echo
   [ "${#ADMIN_PASS}" -ge 8 ] || { echo "Too short."; continue; }
   read -rsp "Repeat password: " P2; echo
@@ -54,7 +58,6 @@ if [ -n "$(holder "$PANEL_PORT")" ]; then
   fi
 fi
 
-EMAIL="admin@${DOMAIN}"
 DB_PASS=$(openssl rand -hex 16 2>/dev/null || head -c16 /dev/urandom | od -An -tx1 | tr -d ' \n')
 export DEBIAN_FRONTEND=noninteractive
 

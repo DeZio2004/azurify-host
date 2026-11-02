@@ -60,6 +60,12 @@ php -r '$f=$argv[1]; $s=file_get_contents($f);
 $a=strpos($s, "getDiscord()"); $e=strrpos($s, "@endsection");
 if ($a !== false && $e !== false) { $r=strrpos(substr($s, 0, $a), "<div class=\"row\">"); if ($r !== false) $s=substr($s, 0, $r).substr($s, $e); }
 file_put_contents($f,$s);' $V_DIR/admin/index.blade.php
+# nests page: drop the "Eggs are a powerful feature ... support@pterodactyl.io" warning box
+php -r '$f=$argv[1]; $s=file_get_contents($f);
+$a=strpos($s, "Eggs are a powerful feature");
+if ($a !== false) { $r=strrpos(substr($s, 0, $a), "<div class=\"row\">"); $n=strpos($s, "<div class=\"row\">", $a);
+  if ($r !== false && $n !== false) $s=substr($s, 0, $r).substr($s, $n); }
+file_put_contents($f,$s);' $V_DIR/admin/nests/index.blade.php
 # language files
 grep -rlE "Pterodactyl" resources/lang 2>/dev/null | xargs -r sed -i -E "s/Pterodactyl Panel/$BRAND_NAME Host/g; s/Pterodactyl/$BRAND_NAME/g"
 
