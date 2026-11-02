@@ -1,0 +1,31 @@
+{
+    "_comment": "Import into Pterodactyl 1.x. AzuRaya service egg.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-11-03T00:00:00+00:00",
+    "name": "AzuRaya Dashboard",
+    "author": "azurifydigitalsolutions@gmail.com",
+    "description": "AzuRaya Main Dashboard (Control). Upload the dashboard ZIP and .env, then start.",
+    "features": null,
+    "docker_images": {
+        "Node.js 24": "ghcr.io/ptero-eggs/yolks:nodejs_24"
+    },
+    "file_denylist": [],
+    "startup": "if [ ! -f server.mjs ]; then echo 'server.mjs not found: upload and unarchive the dashboard ZIP into /home/container'; exit 1; fi; PORT={{SERVER_PORT}} node server.mjs",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"AzuRaya dashboard listening on\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\nmkdir -p /mnt/server/data\necho 'Upload the AzuRaya ZIP in the File Manager, unarchive it into this folder, then create .env'\n",
+            "container": "ghcr.io/ptero-eggs/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": []
+}

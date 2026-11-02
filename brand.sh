@@ -17,7 +17,11 @@ echo "==> Applying $BRAND_NAME branding to $PANEL_DIR"
 # ---- assets
 BR="$PANEL_DIR/public/azurify"; mkdir -p "$BR"
 for f in logo.png favicon.svg azurify-glass.css azurify-glass.js azurify-admin.css; do
-  curl -fsSL "$REPO_RAW/branding/$f?t=$(date +%s)" -o "$BR/$f"
+  if [ -n "${AZURIFY_SRC:-}" ] && [ -f "$AZURIFY_SRC/branding/$f" ]; then
+    cp -f "$AZURIFY_SRC/branding/$f" "$BR/$f"
+  else
+    curl -fsSL "$REPO_RAW/branding/$f?t=$(date +%s)" -o "$BR/$f"
+  fi
 done
 V=$(date +%s)   # cache-buster so browsers pick up the new theme
 

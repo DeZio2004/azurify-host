@@ -1,0 +1,64 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-11-03T00:00:00+00:00",
+    "name": "AzuRaya Website",
+    "author": "azurifydigitalsolutions@gmail.com",
+    "uuid": "6b1c8d2e-4f3a-4c7e-9a52-0d7f1e3b9a41",
+    "description": "Hosts a Node.js website such as the AZURIFY site. Upload the site files (package.json, server.js and the public folder) and start. Optionally downloads a ZIP of the site on install.",
+    "features": null,
+    "docker_images": {
+        "Node.js 22": "ghcr.io/ptero-eggs/yolks:nodejs_22",
+        "Node.js 20": "ghcr.io/ptero-eggs/yolks:nodejs_20"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"${TUNNEL_TOKEN}\" ]; then [ -x ./cloudflared ] || { curl -fsSL \"https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$([ \"$(uname -m)\" = aarch64 ] && echo arm64 || echo amd64)\" -o cloudflared && chmod +x cloudflared; }; ./cloudflared tunnel --no-autoupdate run --token \"${TUNNEL_TOKEN}\" & fi; if [ -f package.json ] && grep -q '\"dependencies\"' package.json; then npm install --omit=dev; fi; node {{STARTUP_FILE}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"website ready\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Node.js website install script\napt update\napt install -y curl unzip\n\nmkdir -p /mnt/server\ncd /mnt/server\n\nif [ -n \"${ZIP_URL}\" ]; then\n  echo \"Downloading site from ${ZIP_URL}\"\n  curl -fsSL \"${ZIP_URL}\" -o site.zip\n  unzip -o site.zip\n  rm -f site.zip\nelse\n  echo \"No ZIP_URL set. Upload your site files (package.json, server.js, public/) in the Files tab.\"\nfi\n\necho \"-----------------------------------------\"\necho \"Installation complete\"\necho \"-----------------------------------------\"\n",
+            "container": "ghcr.io/ptero-eggs/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Startup file",
+            "description": "The file Node.js runs to start the website.",
+            "env_variable": "STARTUP_FILE",
+            "default_value": "server.js",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Site ZIP URL (optional)",
+            "description": "Optional direct link to a ZIP of the site, downloaded and extracted on install. Leave empty to upload the files yourself.",
+            "env_variable": "ZIP_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Cloudflare Tunnel token (optional)",
+            "description": "Paste a Cloudflare Tunnel token to publish this site on your own domain without opening any port. Leave empty to skip the tunnel.",
+            "env_variable": "TUNNEL_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:1000",
+            "field_type": "text"
+        }
+    ]
+}

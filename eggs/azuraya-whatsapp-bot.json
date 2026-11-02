@@ -1,0 +1,134 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-11-03T00:00:00+00:00",
+    "name": "AzuRaya WhatsApp Bot",
+    "author": "azurifydigitalsolutions@gmail.com",
+    "uuid": "9d2f5a7c-3b18-4e64-a0c9-5e7b1f6d2c83",
+    "description": "WhatsApp bot (Baileys) that creates AZURIFY panel clients with .create and sends the client-portal login. Upload the bot files or give a ZIP URL, fill in the panel address and token, then start and link your number with the pairing code shown in the console.",
+    "features": null,
+    "docker_images": {
+        "Node.js 22": "ghcr.io/ptero-eggs/yolks:nodejs_22",
+        "Node.js 20": "ghcr.io/ptero-eggs/yolks:nodejs_20"
+    },
+    "file_denylist": [],
+    "startup": "if [ -f package.json ]; then npm install --omit=dev --no-audit --no-fund; fi; node {{STARTUP_FILE}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"bot ready\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# AZURIFY WhatsApp bot install script\napt update\napt install -y curl unzip git\n\nmkdir -p /mnt/server\ncd /mnt/server\n\nif [ -n \"${ZIP_URL}\" ]; then\n  echo \"Downloading the bot from ${ZIP_URL}\"\n  curl -fsSL \"${ZIP_URL}\" -o bot.zip\n  unzip -o bot.zip\n  rm -f bot.zip\nelse\n  echo \"No ZIP_URL set. Upload the bot files (package.json, index.js, src/) in the Files tab.\"\nfi\n\necho \"-----------------------------------------\"\necho \"Installation complete\"\necho \"-----------------------------------------\"\n",
+            "container": "ghcr.io/ptero-eggs/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Startup file",
+            "description": "The file Node.js runs to start the bot.",
+            "env_variable": "STARTUP_FILE",
+            "default_value": "index.js",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Bot ZIP URL (optional)",
+            "description": "Optional direct link to a ZIP of the bot, downloaded and extracted on install. Leave empty to upload the files yourself.",
+            "env_variable": "ZIP_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Panel URL",
+            "description": "AZURIFY panel address including its secret path, e.g. https://vpn.example.com:17024/abc123",
+            "env_variable": "PANEL_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Panel API token",
+            "description": "Admin API token. Create it in the panel under Settings > Security > API tokens (Admin scope), or on the VPS run: /usr/local/azurify-ui/azurify-ui setting -getApiToken",
+            "env_variable": "PANEL_TOKEN",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": true,
+            "rules": "required|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "WhatsApp number",
+            "description": "Your number with country code, digits only (for example 94771234567). The console prints a pairing code for it. Leave empty to get a QR code instead.",
+            "env_variable": "BOT_NUMBER",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra admin numbers",
+            "description": "Comma separated numbers (digits only) that may also use commands. The linked number itself always can.",
+            "env_variable": "ADMIN_NUMBERS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Client portal URL (optional)",
+            "description": "Link sent to customers. Leave empty to use the panel address + /clientportal/",
+            "env_variable": "PORTAL_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Default data limit",
+            "description": "Used when .create has no data part. 0 = unlimited. Examples: 100gb, 50gb, 500mb",
+            "env_variable": "DEFAULT_DATA",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Default expiry",
+            "description": "Used when .create has no expiry part. 0 = never. Examples: 30d, 2d, 1h, 1d12h",
+            "env_variable": "DEFAULT_EXPIRY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Command prefix",
+            "description": "Character(s) that start a command.",
+            "env_variable": "PREFIX",
+            "default_value": ".",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:5",
+            "field_type": "text"
+        }
+    ]
+}

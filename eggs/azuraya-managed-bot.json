@@ -1,0 +1,94 @@
+{
+    "_comment": "Import into Pterodactyl 1.x. Created for AzuRaya Control.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-11-03T00:00:00+00:00",
+    "name": "AzuRaya Managed Bot",
+    "author": "azurifydigitalsolutions@gmail.com",
+    "description": "Isolated AzuRaya instance with dashboard pairing callbacks.",
+    "features": null,
+    "docker_images": {
+        "Node.js 22": "ghcr.io/ptero-eggs/yolks:nodejs_22"
+    },
+    "file_denylist": [
+        "session/*"
+    ],
+    "startup": "node dashboard-bridge.cjs",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Starting AzuRaya\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\nset -euo pipefail\nexport DEBIAN_FRONTEND=noninteractive\napt-get update\napt-get install -y curl python3 ca-certificates\ncd /mnt/server\ncurl --fail --location --connect-timeout 10 --max-time 120 --retry 2 \"$BOT_DOWNLOAD_URL\" -o /tmp/bot.zip\npython3 - <<'PY'\nimport zipfile,pathlib,json,os\nroot=pathlib.Path('/mnt/server')\nwith zipfile.ZipFile('/tmp/bot.zip') as z:\n files=[i for i in z.infolist() if not i.is_dir()]\n if sum(i.file_size for i in files)>200*1024*1024:raise Exception('Expanded archive exceeds 200 MB')\n prefixes={i.filename.split('/')[0] for i in files}\n strip=len(prefixes)==1 and not any(i.filename=='package.json' for i in files)\n for i in files:\n  name=i.filename.split('/',1)[1] if strip else i.filename\n  p=pathlib.PurePosixPath(name)\n  if '\\\\' in name or p.is_absolute() or '..' in p.parts or not p.parts:raise Exception('Unsafe ZIP path')\n  if p.parts[0] in ('session','node_modules','.git') or p.name.startswith('.env') or p.name=='cookies.txt':continue\n  target=root.joinpath(*p.parts)\n  target.parent.mkdir(parents=True,exist_ok=True)\n  target.write_bytes(z.read(i))\nif not (root/'start-panel.cjs').exists():raise Exception('Missing start-panel.cjs: use a compatible AzuRaya release')\n(root/'data').mkdir(exist_ok=True)\n(root/'data/owner.json').write_text(json.dumps([os.environ['WHATSAPP_NUMBER']]))\n(root/'session').mkdir(exist_ok=True)\np=root/'package.json'\npkg=json.loads(p.read_text())\npkg['allowScripts']={**pkg.get('allowScripts',{}),'sharp':True,'ffmpeg-static':True,'@whiskeysockets/baileys':True,'protobufjs':True,'es5-ext':True}\np.write_text(json.dumps(pkg,indent=2))\nPY\ncurl --fail --location --connect-timeout 10 --max-time 120 --retry 2 \"$BRIDGE_URL\" -o dashboard-bridge.cjs\nnpm install --legacy-peer-deps\n",
+            "container": "ghcr.io/ptero-eggs/yolks:nodejs_22",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Bot Download Url",
+            "description": "BOT_DOWNLOAD_URL",
+            "env_variable": "BOT_DOWNLOAD_URL",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Bridge Url",
+            "description": "BRIDGE_URL",
+            "env_variable": "BRIDGE_URL",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Whatsapp Number",
+            "description": "WHATSAPP_NUMBER",
+            "env_variable": "WHATSAPP_NUMBER",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Dashboard Callback",
+            "description": "DASHBOARD_CALLBACK",
+            "env_variable": "DASHBOARD_CALLBACK",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Dashboard Token",
+            "description": "DASHBOARD_TOKEN",
+            "env_variable": "DASHBOARD_TOKEN",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Dashboard Link Mode",
+            "description": "DASHBOARD_LINK_MODE (both or qr)",
+            "env_variable": "DASHBOARD_LINK_MODE",
+            "default_value": "both",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "nullable|string|in:both,qr",
+            "field_type": "text"
+        }
+    ]
+}

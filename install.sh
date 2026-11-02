@@ -3,9 +3,12 @@
 # Usage (as root, fresh Ubuntu 22.04/24.04 or Debian 12):
 #   bash <(curl -Ls https://raw.githubusercontent.com/DeZio2004/azurify-host/main/install.sh)
 set -euo pipefail
-trap 'echo -e "[1;31mFAILED at line $LINENO:[0m $BASH_COMMAND" >&2' ERR
+trap 'echo -e "\033[1;31mFAILED at line $LINENO:\033[0m $BASH_COMMAND" >&2' ERR
 
-REPO_RAW="${AZURIFY_RAW:-https://raw.githubusercontent.com/DeZio2004/azurify-host/main}"
+REPO_REF="${AZURIFY_REF:-main}"
+REPO_TGZ="https://codeload.github.com/DeZio2004/azurify-host/tar.gz/$REPO_REF"
+SRC=/opt/azurify-host          # installer files (eggs, theme, setup scripts)
+CRED_FILE=/root/azurify-credentials.txt
 PANEL_DIR=/var/www/azurify
 PHP_VER=8.3
 
@@ -21,22 +24,33 @@ case "$ID" in ubuntu|debian) ;; *) die "Only Ubuntu / Debian are supported." ;; 
 ARCH=amd64; [ "$(uname -m)" = "aarch64" ] && ARCH=arm64
 
 # ---------------------------------------------------------------- questions
-echo -e "\n${c_b}AZURIFY Host installer${c_0}\n"
-read -rp "Panel domain (e.g. panel.example.com, DNS must point to this VPS): " DOMAIN
+# Every answer can also come from the environment for unattended installs:
+#   AZ_DOMAIN AZ_USER AZ_EMAIL AZ_PASS AZ_PORT  (+ AZ_SSL=0 to skip Let's Encrypt, AZ_FREE_PORT=y)
+ask() { local var=$1 env=$2 prompt=$3; if [ -n "${!env:-}" ]; then printf -v "$var" '%s' "${!env}"; else read -rp "$prompt" "$var"; fi; }
+echo -e "
+${c_b}AZURIFY Host installer${c_0}
+"
+ask DOMAIN AZ_DOMAIN "Panel domain (e.g. panel.example.com, DNS must point to this VPS): "
 [ -n "$DOMAIN" ] || die "Domain is required."
-read -rp "Admin username: " ADMIN_USER
+ask ADMIN_USER AZ_USER "Admin username: "
 [[ "$ADMIN_USER" =~ ^[A-Za-z0-9_.-]{3,}$ ]] || die "Username: 3+ chars, letters/numbers/._-"
 while :; do
-  read -rp "Admin email (used for login, password reset and SSL notices): " EMAIL
-  [[ "$EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] && break || echo "Enter a valid email, e.g. you@gmail.com"
+  ask EMAIL AZ_EMAIL "Admin email (used for login, password reset and SSL notices): "
+  [[ "$EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] && break
+  [ -n "${AZ_EMAIL:-}" ] && die "AZ_EMAIL is not a valid email."
+  echo "Enter a valid email, e.g. you@gmail.com"
 done
-while :; do
-  read -rsp "Admin password (min 8 chars): " ADMIN_PASS; echo
-  [ "${#ADMIN_PASS}" -ge 8 ] || { echo "Too short."; continue; }
-  read -rsp "Repeat password: " P2; echo
-  [ "$ADMIN_PASS" = "$P2" ] && break || echo "Passwords differ."
-done
-read -rp "Panel HTTPS port [443]: " PANEL_PORT
+if [ -n "${AZ_PASS:-}" ]; then
+  ADMIN_PASS="$AZ_PASS"; [ "${#ADMIN_PASS}" -ge 8 ] || die "AZ_PASS must be 8+ chars."
+else
+  while :; do
+    read -rsp "Admin password (min 8 chars): " ADMIN_PASS; echo
+    [ "${#ADMIN_PASS}" -ge 8 ] || { echo "Too short."; continue; }
+    read -rsp "Repeat password: " P2; echo
+    [ "$ADMIN_PASS" = "$P2" ] && break || echo "Passwords differ."
+  done
+fi
+ask PANEL_PORT AZ_PORT "Panel HTTPS port [443]: "
 PANEL_PORT="${PANEL_PORT:-443}"
 [[ "$PANEL_PORT" =~ ^[0-9]+$ ]] && [ "$PANEL_PORT" -ge 1 ] && [ "$PANEL_PORT" -le 65535 ] || die "Invalid port."
 for p in 8080 2022; do [ "$PANEL_PORT" = "$p" ] && die "Port $p is used by the game node (wings). Pick another."; done
@@ -45,7 +59,7 @@ for p in 8080 2022; do [ "$PANEL_PORT" = "$p" ] && die "Port $p is used by the g
 holder() { ss -ltnpH "sport = :$1" 2>/dev/null | head -1; }
 if [ -n "$(holder "$PANEL_PORT")" ]; then
   echo -e "\nPort $PANEL_PORT is in use by:\n  $(holder "$PANEL_PORT")"
-  read -rp "Stop/disable that service to free the port? [y/N]: " FREE
+  ask FREE AZ_FREE_PORT "Stop/disable that service to free the port? [y/N]: "
   if [[ "$FREE" =~ ^[Yy]$ ]]; then
     PID=$(holder "$PANEL_PORT" | grep -oP 'pid=\K[0-9]+' | head -1 || true)
     UNIT=$( [ -n "$PID" ] && systemctl status "$PID" 2>/dev/null | grep -oE '[A-Za-z0-9@_.-]+\.service' | head -1 || true)
@@ -91,7 +105,10 @@ SQL
 say "Requesting SSL certificate for $DOMAIN"
 systemctl stop nginx 2>/dev/null || true
 HTTPS=1
-if ! certbot certonly --standalone --non-interactive --agree-tos -m "$EMAIL" -d "$DOMAIN" --preferred-challenges http; then
+if [ "${AZ_SSL:-1}" = 0 ]; then
+  echo "Skipping SSL (AZ_SSL=0): the panel will use plain HTTP."
+  HTTPS=0
+elif ! certbot certonly --standalone --non-interactive --agree-tos -m "$EMAIL" -d "$DOMAIN" --preferred-challenges http; then
   echo -e "${c_r}SSL failed${c_0} (is the DNS A record pointing here and port 80 open?)."
   read -rp "Continue without HTTPS (plain HTTP)? [y/N]: " CONT
   [[ "$CONT" =~ ^[Yy]$ ]] || die "Fix DNS/port 80 and run again."
@@ -139,9 +156,23 @@ EOF
 systemctl daemon-reload && systemctl enable --now azurify-queue
 
 # ---------------------------------------------------------------- AZURIFY branding + glass theme
+say "Downloading AZURIFY Host files"
+rm -rf "$SRC" && mkdir -p "$SRC"
+if [ -n "${AZURIFY_SRC:-}" ] && [ -d "$AZURIFY_SRC" ]; then
+  cp -r "$AZURIFY_SRC"/. "$SRC"/            # local copy (testing)
+else
+  curl -fsSL "$REPO_TGZ" | tar -xz -C "$SRC" --strip-components=1
+fi
+install -m 755 "$SRC/brand.sh" /usr/local/bin/azurify-brand
+
 say "Applying AZURIFY branding and glass theme"
-curl -fsSL "$REPO_RAW/brand.sh" -o /usr/local/bin/azurify-brand && chmod +x /usr/local/bin/azurify-brand
-AZURIFY_RAW="$REPO_RAW" PANEL_DIR="$PANEL_DIR" /usr/local/bin/azurify-brand
+AZURIFY_SRC="$SRC" PANEL_DIR="$PANEL_DIR" /usr/local/bin/azurify-brand
+
+say "Importing AzuRaya eggs, removing stock eggs, creating API keys"
+SETUP_OK=1
+php "$SRC/setup/azurify-setup.php" "$PANEL_DIR" "$SRC" "$ADMIN_USER" "$CRED_FILE" || SETUP_OK=0
+php "$PANEL_DIR/artisan" view:clear >/dev/null; php "$PANEL_DIR/artisan" route:clear >/dev/null || true
+chown -R www-data:www-data "$PANEL_DIR"
 
 # ---------------------------------------------------------------- nginx
 say "Configuring web server on port $PANEL_PORT"
@@ -238,3 +269,9 @@ echo "  Login : $ADMIN_USER  (the password you entered)"
 echo "  Node  : node-1 (this VPS, wings on 8080 / SFTP 2022)"
 echo "  Open ports in your cloud firewall: 80, $PANEL_PORT, 8080, 2022 + game server ports."
 echo "  Add game ports: Admin > Nodes > node-1 > Allocation."
+if [ -s "$CRED_FILE" ]; then
+  echo
+  echo "  API keys (also saved to $CRED_FILE):"
+  sed -n 's/^\(dezio[a-z]*\)=\(.*\)$/    \1 : \2/p' "$CRED_FILE"
+fi
+[ "$SETUP_OK" = 1 ] || echo -e "  ${c_r}Some setup steps failed - see the PROBLEM lines above.${c_0}"
