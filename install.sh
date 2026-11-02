@@ -3,6 +3,7 @@
 # Usage (as root, fresh Ubuntu 22.04/24.04 or Debian 12):
 #   bash <(curl -Ls https://raw.githubusercontent.com/DeZio2004/azurify-host/main/install.sh)
 set -euo pipefail
+trap 'echo -e "[1;31mFAILED at line $LINENO:[0m $BASH_COMMAND" >&2' ERR
 
 REPO_RAW="${AZURIFY_RAW:-https://raw.githubusercontent.com/DeZio2004/azurify-host/main}"
 PANEL_DIR=/var/www/azurify
@@ -115,11 +116,11 @@ php artisan p:environment:database --host=127.0.0.1 --port=3306 --database=azuri
 sed -i 's/^APP_NAME=.*/APP_NAME=AZURIFY/' .env
 php artisan migrate --seed --force
 php artisan p:user:make --email="$EMAIL" --username="$ADMIN_USER" --name-first=Admin --name-last=AZURIFY \
-  --password="$ADMIN_PASS" --admin=1 --no-interaction
+  --password="$ADMIN_PASS" --admin=1 --no-interaction || echo "(admin user already exists or was just created)"
 chown -R www-data:www-data "$PANEL_DIR"
 
 # queue worker + scheduler
-(crontab -l 2>/dev/null | grep -v 'artisan schedule:run'; echo "* * * * * php $PANEL_DIR/artisan schedule:run >> /dev/null 2>&1") | crontab -
+(crontab -l 2>/dev/null | grep -v 'artisan schedule:run' || true; echo "* * * * * php $PANEL_DIR/artisan schedule:run >> /dev/null 2>&1") | crontab -
 cat >/etc/systemd/system/azurify-queue.service <<EOF
 [Unit]
 Description=AZURIFY queue worker
@@ -205,7 +206,7 @@ ln -sf /etc/nginx/sites-available/azurify.conf /etc/nginx/sites-enabled/azurify.
 nginx -t
 systemctl enable --now nginx && systemctl restart nginx
 # auto-renew: nginx does not hold port 80, so renew in standalone mode
-(crontab -l 2>/dev/null | grep -v 'certbot renew'; echo '0 3 * * * certbot renew --quiet --standalone --deploy-hook "systemctl reload nginx; systemctl restart wings 2>/dev/null"') | crontab -
+(crontab -l 2>/dev/null | grep -v 'certbot renew' || true; echo '0 3 * * * certbot renew --quiet --standalone --deploy-hook "systemctl reload nginx; systemctl restart wings 2>/dev/null"') | crontab -
 
 # ---------------------------------------------------------------- node (wings) on the same VPS
 say "Installing Docker and the game node (wings)"
