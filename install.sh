@@ -26,7 +26,8 @@ ARCH=amd64; [ "$(uname -m)" = "aarch64" ] && ARCH=arm64
 
 # ---------------------------------------------------------------- questions
 # Every answer can also come from the environment for unattended installs:
-#   AZ_DOMAIN AZ_USER AZ_EMAIL AZ_PASS AZ_PORT  (+ AZ_SSL=0 to skip Let's Encrypt, AZ_FREE_PORT=y)
+#   AZ_DOMAIN AZ_USER AZ_EMAIL AZ_PASS AZ_PORT AZ_NODE_PORT AZ_SFTP_PORT AZ_APP_PORTS
+#   (+ AZ_SSL=0 to skip Let's Encrypt, AZ_FREE_PORT=y, AZ_UFW_ENABLE=0 to leave ufw off)
 ask() { local var=$1 env=$2 prompt=$3; if [ -n "${!env:-}" ]; then printf -v "$var" '%s' "${!env}"; else read -rp "$prompt" "$var"; fi; }
 echo -e "
 ${c_b}AZURIFY Host installer${c_0}
@@ -51,27 +52,57 @@ else
     [ "$ADMIN_PASS" = "$P2" ] && break || echo "Passwords differ."
   done
 fi
+valid_port() { [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]; }
+SSH_PORT=$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}' || true); SSH_PORT="${SSH_PORT:-22}"
+
 ask PANEL_PORT AZ_PORT "Panel HTTPS port [443]: "
 PANEL_PORT="${PANEL_PORT:-443}"
-[[ "$PANEL_PORT" =~ ^[0-9]+$ ]] && [ "$PANEL_PORT" -ge 1 ] && [ "$PANEL_PORT" -le 65535 ] || die "Invalid port."
-for p in 8080 2022; do [ "$PANEL_PORT" = "$p" ] && die "Port $p is used by the game node (wings). Pick another."; done
+valid_port "$PANEL_PORT" || die "Invalid panel port."
+ask NODE_PORT AZ_NODE_PORT "Node (wings) port [8080]: "
+NODE_PORT="${NODE_PORT:-8080}"
+valid_port "$NODE_PORT" || die "Invalid node port."
+ask SFTP_PORT AZ_SFTP_PORT "SFTP (file upload) port [2022]: "
+SFTP_PORT="${SFTP_PORT:-2022}"
+valid_port "$SFTP_PORT" || die "Invalid SFTP port."
+ask APP_PORTS AZ_APP_PORTS "Ports for your servers/apps, e.g. 3000-3050 [3000-3050, or 'none']: "
+APP_PORTS="${APP_PORTS:-3000-3050}"
+[ "$APP_PORTS" = none ] && APP_PORTS=""
 
-# free the chosen port if something else holds it
+# every port must be different (80 is needed for the SSL certificate, SSH must stay reachable)
+USED="80 $SSH_PORT"; [ "${AZ_SSL:-1}" = 0 ] && USED="$SSH_PORT"
+for pair in "panel:$PANEL_PORT" "node:$NODE_PORT" "SFTP:$SFTP_PORT"; do
+  name=${pair%%:*}; port=${pair#*:}
+  for u in $USED; do [ "$port" = "$u" ] && die "The $name port $port is already used (by SSH, SSL or another answer). Pick another."; done
+  USED="$USED $port"
+done
+APP_FROM=""; APP_TO=""
+if [ -n "$APP_PORTS" ]; then
+  [[ "$APP_PORTS" =~ ^([0-9]{4,5})(-([0-9]{4,5}))?$ ]] || die "Server ports must look like 3000-3050 (or a single port like 25565, from 1025 up)."
+  APP_FROM=${BASH_REMATCH[1]}; APP_TO=${BASH_REMATCH[3]:-$APP_FROM}
+  [ "$APP_FROM" -gt 1024 ] && [ "$APP_TO" -le 65535 ] && [ "$APP_FROM" -le "$APP_TO" ] || die "Server ports must be between 1025 and 65535, low-high."
+  [ $((APP_TO - APP_FROM)) -lt 1000 ] || die "Use at most 1000 server ports at once."
+  for u in $USED; do [ "$u" -ge "$APP_FROM" ] && [ "$u" -le "$APP_TO" ] && die "Server ports $APP_PORTS include port $u, which is already used. Pick another range."; done
+fi
+
+# free a chosen port if something else holds it
 holder() { ss -ltnpH "sport = :$1" 2>/dev/null | head -1; }
-if [ -n "$(holder "$PANEL_PORT")" ]; then
-  echo -e "\nPort $PANEL_PORT is in use by:\n  $(holder "$PANEL_PORT")"
-  ask FREE AZ_FREE_PORT "Stop/disable that service to free the port? [y/N]: "
+free_port() {
+  local port=$1
+  [ -n "$(holder "$port")" ] || return 0
+  echo -e "\nPort $port is in use by:\n  $(holder "$port")"
+  ask FREE AZ_FREE_PORT "Stop/disable that service to free port $port? [y/N]: "
   if [[ "$FREE" =~ ^[Yy]$ ]]; then
-    PID=$(holder "$PANEL_PORT" | grep -oP 'pid=\K[0-9]+' | head -1 || true)
+    PID=$(holder "$port" | grep -oP 'pid=\K[0-9]+' | head -1 || true)
     UNIT=$( [ -n "$PID" ] && systemctl status "$PID" 2>/dev/null | grep -oE '[A-Za-z0-9@_.-]+\.service' | head -1 || true)
     if [ -n "$UNIT" ]; then systemctl disable --now "$UNIT" || true; else [ -n "$PID" ] && kill "$PID" || true; fi
     sleep 2
-    [ -z "$(holder "$PANEL_PORT")" ] || die "Port $PANEL_PORT is still busy. Free it manually or choose another port."
-    ok "Port $PANEL_PORT freed."
+    [ -z "$(holder "$port")" ] || die "Port $port is still busy. Free it manually or choose another port."
+    ok "Port $port freed."
   else
     die "Choose another port and run again."
   fi
-fi
+}
+for p in "$PANEL_PORT" "$NODE_PORT" "$SFTP_PORT"; do free_port "$p"; done
 
 DB_PASS=$(openssl rand -hex 16 2>/dev/null || head -c16 /dev/urandom | od -An -tx1 | tr -d ' \n')
 export DEBIAN_FRONTEND=noninteractive
@@ -235,7 +266,7 @@ systemctl enable --now nginx && systemctl restart nginx
 
 # ---------------------------------------------------------------- node (wings) on the same VPS
 say "Installing Docker and the game node (wings)"
-curl -fsSL https://get.docker.com | sh
+command -v docker >/dev/null || curl -fsSL https://get.docker.com | sh
 systemctl enable --now docker
 mkdir -p /etc/pterodactyl /var/lib/pterodactyl
 curl -fsSL -o /usr/local/bin/wings "https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_$ARCH"
@@ -247,8 +278,19 @@ php artisan p:location:make --short=main --long="AZURIFY" --no-interaction
 php artisan p:node:make --name="node-1" --description="AZURIFY local node" --locationId=1 --fqdn="$DOMAIN" \
   --public=1 --scheme="$SCHEME" --proxy=0 --maintenance=0 \
   --maxMemory="$MEM" --overallocateMemory=0 --maxDisk="$DISK" --overallocateDisk=0 \
-  --uploadSize=100 --daemonListeningPort=8080 --daemonSFTPPort=2022 --daemonBase=/var/lib/pterodactyl/volumes --no-interaction
+  --uploadSize=100 --daemonListeningPort="$NODE_PORT" --daemonSFTPPort="$SFTP_PORT" --daemonBase=/var/lib/pterodactyl/volumes --no-interaction
 php artisan p:node:configuration 1 > /etc/pterodactyl/config.yml
+
+# server/app ports: create them on the node so they can be picked when creating a server
+PUBLIC_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<NF;i++) if($i=="src"){print $(i+1); exit}}' || true)
+if [ -n "$APP_FROM" ] && [ -n "$PUBLIC_IP" ]; then
+  if php "$SRC/setup/azurify-ports.php" "$PANEL_DIR" 1 "$PUBLIC_IP" "$DOMAIN" "$APP_FROM-$APP_TO"; then
+    ok "Server ports $APP_FROM-$APP_TO added to node-1 ($PUBLIC_IP, shown as $DOMAIN)"
+  else
+    echo -e "${c_r}Could not add server ports automatically.${c_0} Add them in Admin > Nodes > node-1 > Allocation."
+    SETUP_OK=0
+  fi
+fi
 cat >/etc/systemd/system/wings.service <<EOF
 [Unit]
 Description=AZURIFY Wings daemon
@@ -266,18 +308,29 @@ WantedBy=multi-user.target
 EOF
 systemctl daemon-reload && systemctl enable --now wings
 
-# firewall hints (only touches ufw if it is already active)
-if ufw status 2>/dev/null | grep -q "Status: active"; then
-  ufw allow 80/tcp; ufw allow "$PANEL_PORT"/tcp; ufw allow 8080/tcp; ufw allow 2022/tcp
+# firewall: open every port the panel needs (SSH first so the connection is never cut)
+say "Opening firewall ports"
+FW_PORTS="$SSH_PORT/tcp 80/tcp $PANEL_PORT/tcp $NODE_PORT/tcp $SFTP_PORT/tcp"
+[ -n "$APP_FROM" ] && FW_PORTS="$FW_PORTS $APP_FROM:$APP_TO/tcp $APP_FROM:$APP_TO/udp"
+[ "$APP_FROM" = "$APP_TO" ] && [ -n "$APP_FROM" ] && FW_PORTS="$SSH_PORT/tcp 80/tcp $PANEL_PORT/tcp $NODE_PORT/tcp $SFTP_PORT/tcp $APP_FROM/tcp $APP_FROM/udp"
+FW_PORTS=$(echo $FW_PORTS | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
+for rule in $FW_PORTS; do ufw allow "$rule" >/dev/null; done
+if [ "${AZ_UFW_ENABLE:-1}" = 1 ]; then
+  ufw --force enable >/dev/null
 fi
+ufw reload >/dev/null 2>&1 || true
+ok "Firewall (ufw) allows: $(echo $FW_PORTS | sed 's# #, #g')"
 
+PORT_LIST=$(printf '%s\n' "$PANEL_PORT" 80 "$NODE_PORT" "$SFTP_PORT" | awk '!seen[$0]++' | paste -sd, - | sed 's/,/, /g')
+[ -n "$APP_FROM" ] && PORT_LIST="$PORT_LIST, $APP_FROM-$APP_TO (tcp+udp)"
 echo
 echo -e "${c_g}AZURIFY Host is ready${c_0}"
 echo "  Panel : $PANEL_URL"
 echo "  Login : $ADMIN_USER  (the password you entered)"
-echo "  Node  : node-1 (this VPS, wings on 8080 / SFTP 2022)"
-echo "  Open ports in your cloud firewall: 80, $PANEL_PORT, 8080, 2022 + game server ports."
-echo "  Add game ports: Admin > Nodes > node-1 > Allocation."
+echo "  Node  : node-1 (this VPS, node port $NODE_PORT, SFTP $SFTP_PORT)"
+[ -n "$APP_FROM" ] && echo "  Server ports: $APP_FROM-$APP_TO, ready to pick when you create a server"
+echo "  This VPS firewall is open for: $PORT_LIST"
+echo "  If your VPS provider has its own cloud firewall, open the same ports there too."
 if [ -s "$CRED_FILE" ]; then
   echo
   echo "  API keys (also saved to $CRED_FILE):"

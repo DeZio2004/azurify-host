@@ -9,8 +9,18 @@ On a fresh Ubuntu 22.04/24.04 or Debian 12 VPS, as root (point the domain's A re
 
     bash <(curl -Ls https://raw.githubusercontent.com/DeZio2004/azurify-host/main/install.sh)
 
-It asks 5 things: domain, admin username, admin email, admin password, panel port (default 443).
-If the port is busy, it shows what holds it and offers to stop that service.
+It asks: domain, admin username, email, password, then the ports:
+
+| Question | Default | Used for |
+|---|---|---|
+| Panel port | 443 | the website you log in to |
+| Node port | 8080 | live console and server control (wings) |
+| SFTP port | 2022 | uploading files to servers |
+| Server ports | 3000-3050 | ports your servers/apps can use (`none` to skip) |
+
+If a port is busy, it shows what holds it and offers to stop that service. Server ports are added to the node
+automatically, and the firewall (ufw) is turned on with SSH, 80 and all of the ports above allowed.
+If your VPS provider has its own cloud firewall, open the same ports there.
 
 What the installer sets up for you:
 
@@ -36,6 +46,6 @@ System packages stay so a reinstall is fast; add `--purge` at the end to remove 
 
 ## Firewall
 
-Open 80, your panel port, 8080 and 2022 (plus game ports) in any cloud firewall.
+The installer opens the VPS firewall for you. A provider cloud firewall needs the same ports opened by hand.
 
 Built on the MIT-licensed Pterodactyl panel; its LICENSE file stays in the panel folder.
